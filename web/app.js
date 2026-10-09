@@ -33,6 +33,19 @@ function saveBest(best) {
   }
 }
 
+// 容量不足などのときにブラウザが最高記録を消さないよう、保存領域の永続化をお願いする。
+// 許可されるかはブラウザ次第（ホーム画面に追加したアプリは許可されやすい）。
+function requestPersistentStorage() {
+  navigator.storage?.persist?.().catch(() => {});
+}
+
+// オフラインでも遊べるようにサービスワーカーを登録する（https か localhost でだけ動く）
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+
 function showStart() {
   const best = loadBest();
   const buttons = $("difficulty-buttons");
@@ -209,6 +222,8 @@ function setup() {
   });
 
   showStart();
+  requestPersistentStorage();
+  registerServiceWorker();
 }
 
 setup();
