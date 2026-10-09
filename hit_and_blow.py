@@ -1,31 +1,36 @@
 """ターミナルで遊ぶヒット＆ブロー。
 
-答えは 0〜9 の数字を重複なしで DIGITS 個並べたもの。
+答えは 0〜9 の数字を重複なしで、選んだ難易度の桁数だけ並べたもの。
 場所も数字も合っていれば「ヒット」、数字だけ合っていれば「ブロー」。
 """
 
 import random
 
-DIGITS = 4
 MAX_TRIES = 10
 ALL_DIGITS = "0123456789"
 GIVE_UP = "q"
+# 入力する番号: (難易度の名前, 桁数)
+DIFFICULTIES = {
+    "1": ("かんたん", 3),
+    "2": ("ふつう", 4),
+    "3": ("むずかしい", 5),
+}
 
 
-def make_answer() -> str:
-    """重複のない DIGITS 桁の答えを作る（先頭が 0 でもよい）。"""
-    return "".join(random.sample(ALL_DIGITS, DIGITS))
+def make_answer(digits: int) -> str:
+    """重複のない digits 桁の答えを作る（先頭が 0 でもよい）。"""
+    return "".join(random.sample(ALL_DIGITS, digits))
 
 
-def read_guess() -> str | None:
-    """重複のない DIGITS 桁の数字が入力されるまで聞き直す。ギブアップなら None。"""
+def read_guess(digits: int) -> str | None:
+    """重複のない digits 桁の数字が入力されるまで聞き直す。ギブアップなら None。"""
     while True:
-        text = input(f"{DIGITS} 桁の数字を入力してください（{GIVE_UP} でギブアップ）: ").strip()
+        text = input(f"{digits} 桁の数字を入力してください（{GIVE_UP} でギブアップ）: ").strip()
         if text.lower() == GIVE_UP:
             return None
-        if len(text) != DIGITS or any(c not in ALL_DIGITS for c in text):
-            print(f"{DIGITS} 桁の数字を入力してください。")
-        elif len(set(text)) != DIGITS:
+        if len(text) != digits or any(c not in ALL_DIGITS for c in text):
+            print(f"{digits} 桁の数字を入力してください。")
+        elif len(set(text)) != digits:
             print("同じ数字は使えません。")
         else:
             return text
@@ -46,18 +51,18 @@ def print_history(history: list[tuple[str, int, int]]) -> None:
     print("------------------------")
 
 
-def play() -> None:
-    answer = make_answer()
+def play(digits: int) -> None:
+    answer = make_answer(digits)
     history = []
     print(f"ヒット＆ブローを始めます！ {MAX_TRIES} 回以内に当ててください。")
 
     for tries in range(1, MAX_TRIES + 1):
-        guess = read_guess()
+        guess = read_guess(digits)
         if guess is None:
             print(f"ギブアップ！ 正解は {answer} でした。")
             return
         hits, blows = count_hits_and_blows(answer, guess)
-        if hits == DIGITS:
+        if hits == digits:
             print(f"正解！ {tries} 回で当たりました。")
             return
         history.append((guess, hits, blows))
@@ -66,6 +71,16 @@ def play() -> None:
             print(f"残り {MAX_TRIES - tries} 回です。")
 
     print(f"残念！ 正解は {answer} でした。")
+
+
+def choose_digits() -> int:
+    """難易度が選ばれるまで聞き直し、その桁数を返す。"""
+    choices = " / ".join(f"{key}: {name}（{digits} 桁）" for key, (name, digits) in DIFFICULTIES.items())
+    while True:
+        text = input(f"難易度を選んでください [{choices}]: ").strip()
+        if text in DIFFICULTIES:
+            return DIFFICULTIES[text][1]
+        print(f"{' か '.join(DIFFICULTIES)} を入力してください。")
 
 
 def ask_play_again() -> bool:
@@ -81,10 +96,11 @@ def ask_play_again() -> bool:
 
 def print_rules() -> None:
     print("==== ヒット＆ブローのルール ====")
-    print(f"・0〜9 の数字を重複なしで {DIGITS} つ並べた答えを当てます（先頭が 0 のこともあります）。")
+    print("・0〜9 の数字を重複なしで並べた答えを当てます（先頭が 0 のこともあります）。")
+    print("・桁数は難易度で決まります。")
     print("・数字も場所も合っていれば「ヒット」、数字だけ合っていれば「ブロー」です。")
     print("  例: 答えが 1234 で 1395 と入力すると、1 ヒット 1 ブロー")
-    print(f"・{MAX_TRIES} 回以内に {DIGITS} ヒットにすれば勝ちです。")
+    print(f"・{MAX_TRIES} 回以内に全部ヒットにすれば勝ちです。")
     print(f"・{GIVE_UP} を入力するとギブアップして答えを見られます。")
     print("================================")
 
@@ -92,7 +108,7 @@ def print_rules() -> None:
 def main() -> None:
     print_rules()
     while True:
-        play()
+        play(choose_digits())
         if not ask_play_again():
             print("遊んでくれてありがとう！")
             break

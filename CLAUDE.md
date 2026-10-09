@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A small terminal Hit & Blow game (4 distinct digits, "hits" = right digit in the right place, "blows" = right digit in the wrong place) in Python (standard library only, no dependencies). The owner uses this repo to learn AI-assisted development with Claude Code, so keep changes small and explain the reasoning behind each step. User-facing text and explanations are in Japanese.
+A small terminal Hit & Blow game (3–5 distinct digits depending on difficulty, "hits" = right digit in the right place, "blows" = right digit in the wrong place) in Python (standard library only, no dependencies). The owner uses this repo to learn AI-assisted development with Claude Code, so keep changes small and explain the reasoning behind each step. User-facing text and explanations are in Japanese.
 
 ## Running
 
@@ -15,7 +15,7 @@ python3 hit_and_blow.py
 The game reads from stdin interactively, so it cannot be played through Claude Code's Bash tool. To verify behavior non-interactively, pipe input and fix the random seed:
 
 ```bash
-printf '0123\n4567\n' | python3 -c "import random, runpy; random.seed(1); runpy.run_path('hit_and_blow.py', run_name='__main__')"
+printf '2\n0123\nq\nn\n' | python3 -c "import random, runpy; random.seed(1); runpy.run_path('hit_and_blow.py', run_name='__main__')"
 ```
 
 ## Testing
@@ -40,9 +40,9 @@ There is no linter or build step.
 ## Structure
 
 `hit_and_blow.py` holds everything:
-- `DIGITS` / `MAX_TRIES` are the game's settings; prompts, validation and tests derive from them, so change them only there.
+- `DIFFICULTIES` maps the menu key to (name, digit count); `MAX_TRIES` and `GIVE_UP` are the other settings. The digit count is passed as an argument (`digits`) through `make_answer()`, `read_guess()` and `play()` rather than stored globally.
 - Answers and guesses are strings, not ints, so a leading `0` is kept.
-- `count_hits_and_blows()` is the core scoring logic; `read_guess()` rejects wrong length, non-ASCII digits and repeated digits, and returns `None` when the player gives up with `GIVE_UP` ("q").
+- `count_hits_and_blows()` is the core scoring logic; `read_guess()` rejects wrong length, non-ASCII digits and repeated digits, and returns `None` when the player gives up.
 - `play()` runs one game, shows the full guess history via `print_history()` after each miss, and ends in a loss after `MAX_TRIES` wrong guesses.
-- `main()` shows `print_rules()` once, then repeats `play()` while `ask_play_again()` returns True.
-- The example in `print_rules()` (1234 → 1395) is hard-coded for 4 digits; update it if `DIGITS` changes.
+- `main()` shows `print_rules()` once, then loops: `choose_digits()` → `play()` → `ask_play_again()`.
+- Tests call functions through `run_with_inputs(func, inputs, *args)` and fix the answer with `fixed_answer()`.
