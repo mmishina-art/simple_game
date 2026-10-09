@@ -4,6 +4,7 @@ import random
 
 MIN_NUMBER = 1
 MAX_NUMBER = 100
+MAX_TRIES = 10
 
 
 def read_guess() -> int:
@@ -22,19 +23,21 @@ def read_guess() -> int:
 
 def play() -> None:
     answer = random.randint(MIN_NUMBER, MAX_NUMBER)
-    tries = 0
-    print("数当てゲームを始めます！")
+    print(f"数当てゲームを始めます！ {MAX_TRIES} 回以内に当ててください。")
 
-    while True:
+    for tries in range(1, MAX_TRIES + 1):
         guess = read_guess()
-        tries += 1
+        if guess == answer:
+            print(f"正解！ {tries} 回で当たりました。")
+            return
         if guess < answer:
             print("もっと大きいです。")
-        elif guess > answer:
-            print("もっと小さいです。")
         else:
-            print(f"正解！ {tries} 回で当たりました。")
-            break
+            print("もっと小さいです。")
+        if tries < MAX_TRIES:
+            print(f"残り {MAX_TRIES - tries} 回です。")
+
+    print(f"残念！ 正解は {answer} でした。")
 
 
 def ask_play_again() -> bool:

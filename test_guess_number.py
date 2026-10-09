@@ -39,6 +39,22 @@ class TestPlay(unittest.TestCase):
         self.assertIn("もっと小さいです。", output)
         self.assertIn("もっと大きいです。", output)
         self.assertIn("正解！ 3 回で当たりました。", output)
+        self.assertIn("残り 8 回です。", output)
+
+    def test_correct_on_last_try_wins(self):
+        inputs = ["1"] * (guess_number.MAX_TRIES - 1) + ["30"]
+        with patch("random.randint", return_value=30):
+            _, output = run_with_inputs(guess_number.play, inputs)
+        self.assertIn(f"正解！ {guess_number.MAX_TRIES} 回で当たりました。", output)
+        self.assertNotIn("残念！", output)
+
+    def test_game_over_after_max_tries(self):
+        inputs = ["1"] * guess_number.MAX_TRIES
+        with patch("random.randint", return_value=30):
+            _, output = run_with_inputs(guess_number.play, inputs)
+        self.assertIn("残念！ 正解は 30 でした。", output)
+        self.assertNotIn("正解！", output)
+        self.assertNotIn("残り 0 回", output)
 
 
 class TestAskPlayAgain(unittest.TestCase):

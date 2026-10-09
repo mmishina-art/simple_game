@@ -42,5 +42,5 @@ There is no linter or build step.
 `guess_number.py` holds everything:
 - `MIN_NUMBER` / `MAX_NUMBER` define the range; prompts and validation derive from them, so change the range only there.
 - `read_guess()` loops until it gets a valid integer within the range.
-- `play()` runs one game: picks the answer, gives higher/lower hints, counts tries.
+- `play()` runs one game: picks the answer, gives higher/lower hints, and ends in a loss after `MAX_TRIES` wrong guesses.
 - `main()` repeats `play()` while `ask_play_again()` returns True.
