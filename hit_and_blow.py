@@ -38,7 +38,7 @@ def read_guess(digits: int) -> str | None:
 
 def count_hits_and_blows(answer: str, guess: str) -> tuple[int, int]:
     """(ヒット数, ブロー数) を返す。"""
-    hits = sum(a == g for a, g in zip(answer, guess))
+    hits = sum(a == g for a, g in zip(answer, guess, strict=True))
     common = len(set(answer) & set(guess))
     return hits, common - hits
 

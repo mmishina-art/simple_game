@@ -35,7 +35,7 @@ python3 -m unittest -v                                              # all tests
 python3 -m unittest test_hit_and_blow.TestPlay.test_hints_and_try_count  # single test
 ```
 
-Coverage is measured with coverage.py, installed in a local venv (`.venv/`, git-ignored). Set it up once with `python3 -m venv .venv && .venv/bin/pip install coverage` (on Ubuntu this needs the `python3.14-venv` apt package).
+Coverage is measured with coverage.py, installed in a local venv (`.venv/`, git-ignored). Set it up once with `python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt` (on Ubuntu this needs the `python3.14-venv` apt package).
 
 ```bash
 .venv/bin/coverage run -m unittest && .venv/bin/coverage report -m
@@ -54,6 +54,18 @@ npx playwright test -g "ギブアップ"          # tests whose name matches
 ```
 
 GitHub Actions (`.github/workflows/test.yml`) runs the Python tests on Python 3.14, `npm test` on Node 24, and the Playwright UI tests for pushes to `main` and for every pull request (feature-branch pushes are covered by the PR run, so they are not run twice). There is no linter or build step.
+
+## Linting
+
+Lint only (no formatter, by the owner's choice): Ruff for Python (`pyproject.toml`) and ESLint for JavaScript (`eslint.config.js`, flat config). Python dev tools are pinned in `requirements-dev.txt`. The `lint` job in Actions runs both.
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt   # once
+.venv/bin/ruff check .
+npm run lint
+```
+
+In `eslint.config.js`, `web/` gets browser globals, `web/sw.js` service-worker globals, and `e2e/` both Node and browser globals because `page.evaluate()` callbacks run in the page.
 
 ## Structure
 
