@@ -311,8 +311,12 @@ button:disabled {
 }
 
 /* ヒット・ブローが 1 つ増えるたびにポンと弾む */
-.history .pop {
+.history .hit,
+.history .blow {
   display: inline-block;
+}
+
+.history .pop {
   animation: pop 0.25s ease-out;
 }
 
@@ -329,7 +333,7 @@ button:disabled {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: shine 1.5s linear infinite;
+  animation: shine 1.5s linear 3;
 }
 
 .answer-cards {
@@ -351,6 +355,16 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: 6px;
   animation: flip 0.4s ease-out both;
+}
+
+/* 画面には出さず、読み上げだけに使う */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .confetti {

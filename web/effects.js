@@ -26,6 +26,7 @@ export function setSoundOn(on) {
 // ---- 音を作る ----
 
 let audioContext = null;
+let soundDelay = 0; // playSoundLater() で鳴らす時刻を後ろにずらす秒数
 
 // iPhone では、ユーザーがボタンを押した流れの中で作る（再開する）必要がある
 function audio() {
@@ -34,7 +35,9 @@ function audio() {
     if (!AudioContextClass) return null;
     audioContext = new AudioContextClass();
   }
-  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  // iPhone では電話やアプリの切り替えで "interrupted" になることもあるので、動いていなければ再開する。
+  // 再開はボタンを押した流れの中でしか許されないため、ボタンの音（tap / submit）のたびにここを通す
+  if (audioContext.state !== "running") audioContext.resume().catch(() => {});
   return audioContext;
 }
 
@@ -48,7 +51,7 @@ const note = (n) => 440 * 2 ** ((n - 69) / 12);
 function tone(freq, duration, { type = "sine", when = 0, volume = 0.2, filter = 0 } = {}) {
   const ac = audio();
   if (!ac) return;
-  const start = ac.currentTime + when;
+  const start = ac.currentTime + soundDelay + when;
   const osc = ac.createOscillator();
   const gain = ac.createGain();
   osc.type = type;
@@ -150,19 +153,30 @@ const SOUNDS = {
 
 /**
  * 効果音を鳴らす（音がオフなら鳴らさない）。
- * どちらの場合も document に "hb:sound" イベント（detail: { name, played }）を出す。
+ * どちらの場合も document に "hb:sound" イベント（detail: { name, played, delay }）を出す。
  * 音そのものはテストで聞けないので、テストはこのイベントで確かめる。
  */
 export function playSound(name, ...args) {
+  playSoundLater(0, name, ...args);
+}
+
+/**
+ * delay 秒後に効果音を鳴らす（イベントはすぐに出す）。
+ * 待たずに結果を出すとき（動きを減らす設定）でも、音が重ならないよう順に並べるために使う。
+ */
+export function playSoundLater(delay, name, ...args) {
   const played = isSoundOn();
   if (played) {
+    soundDelay = delay;
     try {
       SOUNDS[name](...args);
     } catch {
       // 音が鳴らなくてもゲームは続ける
+    } finally {
+      soundDelay = 0;
     }
   }
-  document.dispatchEvent(new CustomEvent("hb:sound", { detail: { name, played } }));
+  document.dispatchEvent(new CustomEvent("hb:sound", { detail: { name, played, delay } }));
 }
 
 // ---- 動きの演出 ----
@@ -224,8 +238,12 @@ export function confetti() {
   }));
 
   const startedAt = performance.now();
+  let previous = startedAt;
   function frame(now) {
     const elapsed = now - startedAt;
+    // 60fps の 1 コマを 1 として、前のコマからの経過時間で動かす（120Hz の画面でも速くならない）
+    const step = Math.min((now - previous) / (1000 / 60), 3);
+    previous = now;
     if (elapsed > CONFETTI_MS) {
       canvas.remove();
       return;
@@ -233,11 +251,11 @@ export function confetti() {
     ctx.clearRect(0, 0, width, height);
     ctx.globalAlpha = Math.min(1, (CONFETTI_MS - elapsed) / 500); // 最後はふわっと消す
     for (const p of pieces) {
-      p.vy += 0.35; // 重力
-      p.vx *= 0.99;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.angle += p.spin;
+      p.vy += 0.35 * step; // 重力
+      p.vx *= 0.99 ** step;
+      p.x += p.vx * step;
+      p.y += p.vy * step;
+      p.angle += p.spin * step;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle);

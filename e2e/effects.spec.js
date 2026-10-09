@@ -151,6 +151,56 @@ test("直前の結果に合わせて背景がほんのり色づく", async ({ pa
   expect(await heat()).toBe("0");
 });
 
+test("動きを減らす設定でも、音は重ならないよう順にずらして鳴らす", async ({ page }) => {
+  await start(page, "ふつう");
+  await clearSounds(page);
+  await page.evaluate(() => { window.__sounds.length = 0; });
+  await guess(page, "0123");
+  await expect(result(page)).toContainText("正解！");
+  const list = await page.evaluate(() => window.__sounds);
+  const afterSubmit = list.slice(list.findIndex((s) => s.name === "submit") + 1);
+  expect(afterSubmit.map((s) => s.name)).toEqual(["hit", "hit", "hit", "hit", "record"]);
+  const delays = afterSubmit.map((s) => s.delay);
+  for (let i = 1; i < delays.length; i++) expect(delays[i]).toBeGreaterThan(delays[i - 1]);
+});
+
+test("同じくらいの結果が続いても、発表の始めに背景が元の色へ戻らない", async ({ page }) => {
+  await start(page, "ふつう");
+  await guess(page, "0124"); // 3 ヒット → 0.75
+  await waitReveal(page);
+  await page.evaluate(() => {
+    window.__heats = [];
+    new MutationObserver(() => window.__heats.push(Number(document.body.style.getPropertyValue("--heat"))))
+      .observe(document.body, { attributes: true, attributeFilter: ["style"] });
+  });
+  await guess(page, "0125"); // また 3 ヒット
+  await waitReveal(page);
+  // 値が変わったときだけ記録される。直っていれば 0.75 のまま一度も下がらない（記録が 0 件でもよい）
+  const heats = await page.evaluate(() => window.__heats);
+  expect(heats.filter((h) => h < 0.75)).toEqual([]);
+  expect(await page.evaluate(() => document.body.style.getPropertyValue("--heat"))).toBe("0.75");
+});
+
+test("新記録の光る演出は数回で止まる", async ({ page }) => {
+  await start(page, "かんたん");
+  await guess(page, "012");
+  const iterations = await result(page).locator(".new-record")
+    .evaluate((el) => getComputedStyle(el).animationIterationCount);
+  // 動きを減らす設定ではアニメーション自体が止まる。止まらない設定でも無限には光らない
+  expect(iterations).not.toBe("infinite");
+});
+
+test("読み上げ用に、結果と「あと少し！」を知らせる", async ({ page }) => {
+  await start(page, "ふつう");
+  await guess(page, "0132");
+  await expect(page.locator("#announce")).toHaveText("1 回目、2 ヒット 2 ブロー");
+  await expect(page.locator("#announce")).toHaveAttribute("aria-live", "polite");
+  await guess(page, "0124");
+  await expect(page.locator("#announce")).toHaveText("2 回目、3 ヒット 0 ブロー");
+  await expect(page.locator("#near")).toHaveAttribute("role", "status");
+  await expect(result(page)).toHaveAttribute("role", "status");
+});
+
 test("動きを減らす設定では紙吹雪を出さない", async ({ page }) => {
   await start(page, "かんたん");
   await guess(page, "012");
@@ -163,27 +213,30 @@ test.describe("演出あり（動きを減らす設定がオフ）", () => {
 
   test("発表中は操作できず、ヒット・ブローが 1 つずつ増える", async ({ page }) => {
     await start(page, "ふつう");
-    // 表示は 0.25 秒ごとに変わるので、変わるたびに最後の行の H / B を記録しておき、あとで順番を確かめる
+    // 表示は 0.25 秒ごとに変わるので、途中の様子を直接確かめず（遅い環境で見逃すため）、
+    // 変わるたびに「最後の行の H / B」と「ボタンが押せるか」を記録しておき、あとで確かめる
     await page.evaluate(() => {
       window.__shown = [];
       new MutationObserver(() => {
         const last = document.querySelector("#history li:last-child");
         if (!last) return;
         const text = `${last.querySelector(".hit").textContent} ${last.querySelector(".blow").textContent}`;
-        if (window.__shown.at(-1) !== text) window.__shown.push(text);
+        if (window.__shown.at(-1)?.text === text) return;
+        const nine = [...document.querySelectorAll("#keypad button")].find((b) => b.textContent === "9");
+        window.__shown.push({
+          text,
+          locked: nine.disabled && document.getElementById("give-up-button").disabled,
+        });
       }).observe(document.getElementById("history"), { childList: true, subtree: true });
     });
 
     await guess(page, "0132");
-    // 発表の途中: 数字ボタンもギブアップも押せない
-    await expect(page.locator("#keypad").getByRole("button", { name: "9", exact: true })).toBeDisabled();
-    await expect(page.getByRole("button", { name: "ギブアップ" })).toBeDisabled();
-    // 発表が終わると押せるようになる
     await waitReveal(page);
     await expect(page.getByRole("button", { name: "ギブアップ" })).toBeEnabled();
-    expect(await page.evaluate(() => window.__shown)).toEqual(
-      ["0 H 0 B", "1 H 0 B", "2 H 0 B", "2 H 1 B", "2 H 2 B"],
-    );
+    const shown = await page.evaluate(() => window.__shown);
+    expect(shown.map((s) => s.text)).toEqual(["0 H 0 B", "1 H 0 B", "2 H 0 B", "2 H 1 B", "2 H 2 B"]);
+    // 発表の途中（最後の表示より前）は、数字ボタンもギブアップも押せない
+    expect(shown.slice(0, -1).every((s) => s.locked)).toBe(true);
   });
 
   test("クリアすると紙吹雪が出て、しばらくすると消える", async ({ page }) => {
