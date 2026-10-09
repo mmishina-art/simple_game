@@ -27,6 +27,14 @@ python3 -m unittest -v                                              # all tests
 python3 -m unittest test_guess_number.TestPlay.test_hints_and_try_count  # single test
 ```
 
+Coverage is measured with coverage.py, installed in a local venv (`.venv/`, git-ignored). Set it up once with `python3 -m venv .venv && .venv/bin/pip install coverage` (on Ubuntu this needs the `python3.14-venv` apt package).
+
+```bash
+.venv/bin/coverage run -m unittest && .venv/bin/coverage report -m
+```
+
+The only uncovered lines are the `if __name__ == "__main__":` entry points, which is expected.
+
 There is no linter or build step.
 
 ## Structure
