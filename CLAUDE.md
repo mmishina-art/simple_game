@@ -18,7 +18,16 @@ The game reads from stdin interactively, so it cannot be played through Claude C
 printf '50\n25\n75\n' | python3 -c "import random, runpy; random.seed(1); runpy.run_path('guess_number.py', run_name='__main__')"
 ```
 
-There are no tests, linter, or build step yet.
+## Testing
+
+Tests use the standard-library `unittest` (no install needed). They patch `builtins.input` and `random.randint` to drive the game without a keyboard.
+
+```bash
+python3 -m unittest -v                                              # all tests
+python3 -m unittest test_guess_number.TestPlay.test_hints_and_try_count  # single test
+```
+
+There is no linter or build step.
 
 ## Structure
 
