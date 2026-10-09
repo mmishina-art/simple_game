@@ -24,7 +24,7 @@ printf '2\n0123\nq\nn\n' | python3 -c "import random, runpy; random.seed(1); run
 python3 -m http.server -d web 8000   # then open http://localhost:8000
 ```
 
-ES modules need to be served over HTTP; opening `index.html` as a file does not work. There is no headless browser in this environment, so UI changes must be checked by the user in a real browser.
+ES modules need to be served over HTTP; opening `index.html` as a file does not work.
 
 ## Testing
 
@@ -45,7 +45,15 @@ The only uncovered lines are the `if __name__ == "__main__":` entry points, whic
 
 Web logic tests use Node's built-in test runner (no install): `npm test` runs `web/*.test.js`.
 
-GitHub Actions (`.github/workflows/test.yml`) runs the Python tests on Python 3.14 and `npm test` on Node 24 for pushes to `main` and for every pull request (feature-branch pushes are covered by the PR run, so they are not run twice). There is no linter or build step.
+UI tests use Playwright (`e2e/`, config in `playwright.config.js`) in headless Chromium with a Pixel 7 mobile profile. The config starts `python3 -m http.server` on port 4173 itself. Tests stub `Math.random` to 0, so answers are `012` / `0123` / `01234`.
+
+```bash
+npm ci && npx playwright install chromium   # once (system libs: npx playwright install-deps chromium, needs sudo)
+npm run test:e2e                            # all UI tests
+npx playwright test -g "ギブアップ"          # tests whose name matches
+```
+
+GitHub Actions (`.github/workflows/test.yml`) runs the Python tests on Python 3.14, `npm test` on Node 24, and the Playwright UI tests for pushes to `main` and for every pull request (feature-branch pushes are covered by the PR run, so they are not run twice). There is no linter or build step.
 
 ## Structure
 
