@@ -118,7 +118,7 @@ def print_rules() -> None:
 
 def main() -> None:
     print_rules()
-    best = {}
+    best: dict[str, int] = {}
     while True:
         name, digits = choose_difficulty()
         tries = play(digits)

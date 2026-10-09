@@ -138,21 +138,15 @@ class TestChooseDifficulty(unittest.TestCase):
 
 
 class TestRecordBest(unittest.TestCase):
-    def record(self, best, name, tries):
-        output = io.StringIO()
-        with redirect_stdout(output):
-            hit_and_blow.record_best(best, name, tries)
-        return output.getvalue()
-
     def test_first_win_is_new_record(self):
         best = {}
-        output = self.record(best, "ふつう", 5)
+        _, output = run_with_inputs(hit_and_blow.record_best, [], best, "ふつう", 5)
         self.assertEqual(best, {"ふつう": 5})
         self.assertIn("新記録！ ふつうの最高記録: 5 回", output)
 
     def test_fewer_tries_updates_record(self):
         best = {"ふつう": 5}
-        output = self.record(best, "ふつう", 3)
+        _, output = run_with_inputs(hit_and_blow.record_best, [], best, "ふつう", 3)
         self.assertEqual(best, {"ふつう": 3})
         self.assertIn("新記録！ ふつうの最高記録: 3 回", output)
 
@@ -160,7 +154,7 @@ class TestRecordBest(unittest.TestCase):
         for tries in [5, 7]:
             with self.subTest(tries=tries):
                 best = {"ふつう": 5}
-                output = self.record(best, "ふつう", tries)
+                _, output = run_with_inputs(hit_and_blow.record_best, [], best, "ふつう", tries)
                 self.assertEqual(best, {"ふつう": 5})
                 self.assertNotIn("新記録！", output)
                 self.assertIn("ふつうの最高記録: 5 回", output)
