@@ -51,7 +51,8 @@ def print_history(history: list[tuple[str, int, int]]) -> None:
     print("------------------------")
 
 
-def play(digits: int) -> None:
+def play(digits: int) -> int | None:
+    """1 ゲーム遊ぶ。勝ったら回数、負け・ギブアップなら None を返す。"""
     answer = make_answer(digits)
     history = []
     print(f"ヒット＆ブローを始めます！ {MAX_TRIES} 回以内に当ててください。")
@@ -60,27 +61,37 @@ def play(digits: int) -> None:
         guess = read_guess(digits)
         if guess is None:
             print(f"ギブアップ！ 正解は {answer} でした。")
-            return
+            return None
         hits, blows = count_hits_and_blows(answer, guess)
         if hits == digits:
             print(f"正解！ {tries} 回で当たりました。")
-            return
+            return tries
         history.append((guess, hits, blows))
         print_history(history)
         if tries < MAX_TRIES:
             print(f"残り {MAX_TRIES - tries} 回です。")
 
     print(f"残念！ 正解は {answer} でした。")
+    return None
 
 
-def choose_digits() -> int:
-    """難易度が選ばれるまで聞き直し、その桁数を返す。"""
+def choose_difficulty() -> tuple[str, int]:
+    """難易度が選ばれるまで聞き直し、(難易度の名前, 桁数) を返す。"""
     choices = " / ".join(f"{key}: {name}（{digits} 桁）" for key, (name, digits) in DIFFICULTIES.items())
     while True:
         text = input(f"難易度を選んでください [{choices}]: ").strip()
         if text in DIFFICULTIES:
-            return DIFFICULTIES[text][1]
+            return DIFFICULTIES[text]
         print(f"{' か '.join(DIFFICULTIES)} を入力してください。")
+
+
+def record_best(best: dict[str, int], name: str, tries: int) -> None:
+    """best（難易度の名前 → 最少回数）を更新し、その難易度の最高記録を表示する。"""
+    if name not in best or tries < best[name]:
+        best[name] = tries
+        print(f"新記録！ {name}の最高記録: {tries} 回")
+    else:
+        print(f"{name}の最高記録: {best[name]} 回")
 
 
 def ask_play_again() -> bool:
@@ -107,8 +118,12 @@ def print_rules() -> None:
 
 def main() -> None:
     print_rules()
+    best = {}
     while True:
-        play(choose_digits())
+        name, digits = choose_difficulty()
+        tries = play(digits)
+        if tries is not None:
+            record_best(best, name, tries)
         if not ask_play_again():
             print("遊んでくれてありがとう！")
             break

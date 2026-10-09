@@ -43,6 +43,7 @@ GitHub Actions (`.github/workflows/test.yml`) runs `python -m unittest -v` on Py
 - `DIFFICULTIES` maps the menu key to (name, digit count); `MAX_TRIES` and `GIVE_UP` are the other settings. The digit count is passed as an argument (`digits`) through `make_answer()`, `read_guess()` and `play()` rather than stored globally.
 - Answers and guesses are strings, not ints, so a leading `0` is kept.
 - `count_hits_and_blows()` is the core scoring logic; `read_guess()` rejects wrong length, non-ASCII digits and repeated digits, and returns `None` when the player gives up.
-- `play()` runs one game, shows the full guess history via `print_history()` after each miss, and ends in a loss after `MAX_TRIES` wrong guesses.
-- `main()` shows `print_rules()` once, then loops: `choose_digits()` → `play()` → `ask_play_again()`.
+- `play()` runs one game, shows the full guess history via `print_history()` after each miss, and returns the number of tries on a win or `None` on a loss (after `MAX_TRIES` misses) or give-up.
+- `main()` shows `print_rules()` once, then loops: `choose_difficulty()` → `play()` → `record_best()` (wins only) → `ask_play_again()`.
+- High scores live only in memory: `main()` keeps a `best` dict of difficulty name → fewest tries, which `record_best()` updates (a tie is not a new record).
 - Tests call functions through `run_with_inputs(func, inputs, *args)` and fix the answer with `fixed_answer()`.

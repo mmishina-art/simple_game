@@ -79,7 +79,8 @@ class TestCountHitsAndBlows(unittest.TestCase):
 class TestPlay(unittest.TestCase):
     def test_hints_and_try_count(self):
         with fixed_answer("1234"):
-            _, output = run_with_inputs(hit_and_blow.play, ["5678", "1243", "1234"], 4)
+            result, output = run_with_inputs(hit_and_blow.play, ["5678", "1243", "1234"], 4)
+        self.assertEqual(result, 3)
         self.assertIn("0 ヒット 0 ブロー", output)
         self.assertIn("2 ヒット 2 ブロー", output)
         self.assertIn("正解！ 3 回で当たりました。", output)
@@ -102,14 +103,16 @@ class TestPlay(unittest.TestCase):
     def test_game_over_after_max_tries(self):
         inputs = ["5678"] * hit_and_blow.MAX_TRIES
         with fixed_answer("0123"):
-            _, output = run_with_inputs(hit_and_blow.play, inputs, 4)
+            result, output = run_with_inputs(hit_and_blow.play, inputs, 4)
+        self.assertIsNone(result)
         self.assertIn("残念！ 正解は 0123 でした。", output)
         self.assertNotIn("正解！", output)
         self.assertNotIn("残り 0 回", output)
 
     def test_give_up_shows_answer(self):
         with fixed_answer("0123"):
-            _, output = run_with_inputs(hit_and_blow.play, ["5678", "q"], 4)
+            result, output = run_with_inputs(hit_and_blow.play, ["5678", "q"], 4)
+        self.assertIsNone(result)
         self.assertIn("ギブアップ！ 正解は 0123 でした。", output)
         self.assertNotIn("残念！", output)
 
@@ -121,17 +124,46 @@ class TestPlay(unittest.TestCase):
                 self.assertIn("正解！ 2 回で当たりました。", output)
 
 
-class TestChooseDigits(unittest.TestCase):
+class TestChooseDifficulty(unittest.TestCase):
     def test_each_difficulty(self):
-        for key, digits in [("1", 3), ("2", 4), ("3", 5)]:
+        for key, expected in [("1", ("かんたん", 3)), ("2", ("ふつう", 4)), ("3", ("むずかしい", 5))]:
             with self.subTest(key=key):
-                result, _ = run_with_inputs(hit_and_blow.choose_digits, [key])
-                self.assertEqual(result, digits)
+                result, _ = run_with_inputs(hit_and_blow.choose_difficulty, [key])
+                self.assertEqual(result, expected)
 
     def test_asks_again_for_invalid_choice(self):
-        result, output = run_with_inputs(hit_and_blow.choose_digits, ["4", "ふつう", " 2 "])
-        self.assertEqual(result, 4)
+        result, output = run_with_inputs(hit_and_blow.choose_difficulty, ["4", "ふつう", " 2 "])
+        self.assertEqual(result, ("ふつう", 4))
         self.assertEqual(output.count("1 か 2 か 3 を入力してください。"), 2)
+
+
+class TestRecordBest(unittest.TestCase):
+    def record(self, best, name, tries):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            hit_and_blow.record_best(best, name, tries)
+        return output.getvalue()
+
+    def test_first_win_is_new_record(self):
+        best = {}
+        output = self.record(best, "ふつう", 5)
+        self.assertEqual(best, {"ふつう": 5})
+        self.assertIn("新記録！ ふつうの最高記録: 5 回", output)
+
+    def test_fewer_tries_updates_record(self):
+        best = {"ふつう": 5}
+        output = self.record(best, "ふつう", 3)
+        self.assertEqual(best, {"ふつう": 3})
+        self.assertIn("新記録！ ふつうの最高記録: 3 回", output)
+
+    def test_same_or_more_tries_keeps_record(self):
+        for tries in [5, 7]:
+            with self.subTest(tries=tries):
+                best = {"ふつう": 5}
+                output = self.record(best, "ふつう", tries)
+                self.assertEqual(best, {"ふつう": 5})
+                self.assertNotIn("新記録！", output)
+                self.assertIn("ふつうの最高記録: 5 回", output)
 
 
 class TestAskPlayAgain(unittest.TestCase):
@@ -150,6 +182,28 @@ class TestAskPlayAgain(unittest.TestCase):
 
 
 class TestMain(unittest.TestCase):
+    def test_tracks_best_per_difficulty(self):
+        inputs = [
+            "2", "5678", "1243", "1234", "y",  # ふつう 3 回 → 新記録
+            "2", "1234", "y",                  # ふつう 1 回 → 新記録
+            "2", "5678", "1234", "y",          # ふつう 2 回 → 記録は 1 回のまま
+            "1", "012", "n",                   # かんたん 1 回 → 別の記録
+        ]
+        answers = ["1234", "1234", "1234", "012"]
+        with patch("hit_and_blow.make_answer", side_effect=answers):
+            _, output = run_with_inputs(hit_and_blow.main, inputs)
+        self.assertIn("新記録！ ふつうの最高記録: 3 回", output)
+        self.assertIn("新記録！ ふつうの最高記録: 1 回", output)
+        self.assertIn("\nふつうの最高記録: 1 回", output)
+        self.assertIn("新記録！ かんたんの最高記録: 1 回", output)
+        self.assertEqual(output.count("新記録！"), 3)
+
+    def test_loss_does_not_record(self):
+        inputs = ["2", "q", "n"]
+        with fixed_answer("1234"):
+            _, output = run_with_inputs(hit_and_blow.main, inputs)
+        self.assertNotIn("最高記録", output)
+
     def test_plays_until_user_says_no(self):
         with fixed_answer("1234"):
             _, output = run_with_inputs(hit_and_blow.main, ["2", "1234", "y", "2", "1234", "n"])
