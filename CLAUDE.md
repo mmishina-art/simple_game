@@ -35,7 +35,7 @@ Coverage is measured with coverage.py, installed in a local venv (`.venv/`, git-
 
 The only uncovered lines are the `if __name__ == "__main__":` entry points, which is expected.
 
-There is no linter or build step.
+GitHub Actions (`.github/workflows/test.yml`) runs `python -m unittest -v` on Python 3.14 for every push and pull request. There is no linter or build step.
 
 ## Structure
 
