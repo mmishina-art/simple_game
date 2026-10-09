@@ -35,8 +35,17 @@ def count_hits_and_blows(answer: str, guess: str) -> tuple[int, int]:
     return hits, common - hits
 
 
+def print_history(history: list[tuple[str, int, int]]) -> None:
+    """これまでの (予想, ヒット数, ブロー数) を一覧で表示する。"""
+    print("---- これまでの結果 ----")
+    for i, (guess, hits, blows) in enumerate(history, start=1):
+        print(f"{i:>2} 回目  {guess}  {hits} ヒット {blows} ブロー")
+    print("------------------------")
+
+
 def play() -> None:
     answer = make_answer()
+    history = []
     print(f"ヒット＆ブローを始めます！ {MAX_TRIES} 回以内に当ててください。")
 
     for tries in range(1, MAX_TRIES + 1):
@@ -45,7 +54,8 @@ def play() -> None:
         if hits == DIGITS:
             print(f"正解！ {tries} 回で当たりました。")
             return
-        print(f"{hits} ヒット {blows} ブロー")
+        history.append((guess, hits, blows))
+        print_history(history)
         if tries < MAX_TRIES:
             print(f"残り {MAX_TRIES - tries} 回です。")
 

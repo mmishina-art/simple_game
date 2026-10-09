@@ -73,6 +73,13 @@ class TestPlay(unittest.TestCase):
         self.assertIn("正解！ 3 回で当たりました。", output)
         self.assertIn("残り 8 回です。", output)
 
+    def test_history_lists_all_previous_guesses(self):
+        with fixed_answer("1234"):
+            _, output = run_with_inputs(hit_and_blow.play, ["5678", "1243", "1234"])
+        second_history = output.split("---- これまでの結果 ----")[2]
+        self.assertIn(" 1 回目  5678  0 ヒット 0 ブロー", second_history)
+        self.assertIn(" 2 回目  1243  2 ヒット 2 ブロー", second_history)
+
     def test_correct_on_last_try_wins(self):
         inputs = ["5678"] * (hit_and_blow.MAX_TRIES - 1) + ["1234"]
         with fixed_answer("1234"):
