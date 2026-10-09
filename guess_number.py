@@ -37,5 +37,24 @@ def play() -> None:
             break
 
 
+def ask_play_again() -> bool:
+    """y か n が入力されるまで聞き直す。"""
+    while True:
+        text = input("もう一度遊びますか？ (y/n): ").strip().lower()
+        if text == "y":
+            return True
+        if text == "n":
+            return False
+        print("y か n を入力してください。")
+
+
+def main() -> None:
+    while True:
+        play()
+        if not ask_play_again():
+            print("遊んでくれてありがとう！")
+            break
+
+
 if __name__ == "__main__":
-    play()
+    main()

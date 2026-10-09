@@ -26,3 +26,4 @@ There are no tests, linter, or build step yet.
 - `MIN_NUMBER` / `MAX_NUMBER` define the range; prompts and validation derive from them, so change the range only there.
 - `read_guess()` loops until it gets a valid integer within the range.
 - `play()` runs one game: picks the answer, gives higher/lower hints, counts tries.
+- `main()` repeats `play()` while `ask_play_again()` returns True.
