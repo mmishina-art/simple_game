@@ -73,7 +73,17 @@ def ask_play_again() -> bool:
         print("y か n を入力してください。")
 
 
+def print_rules() -> None:
+    print("==== ヒット＆ブローのルール ====")
+    print(f"・0〜9 の数字を重複なしで {DIGITS} つ並べた答えを当てます（先頭が 0 のこともあります）。")
+    print("・数字も場所も合っていれば「ヒット」、数字だけ合っていれば「ブロー」です。")
+    print("  例: 答えが 1234 で 1395 と入力すると、1 ヒット 1 ブロー")
+    print(f"・{MAX_TRIES} 回以内に {DIGITS} ヒットにすれば勝ちです。")
+    print("================================")
+
+
 def main() -> None:
+    print_rules()
     while True:
         play()
         if not ask_play_again():

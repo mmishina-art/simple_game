@@ -116,6 +116,7 @@ class TestMain(unittest.TestCase):
         with fixed_answer("1234"):
             _, output = run_with_inputs(hit_and_blow.main, ["1234", "y", "1234", "n"])
         self.assertEqual(output.count("ヒット＆ブローを始めます！"), 2)
+        self.assertEqual(output.count("ヒット＆ブローのルール"), 1)
         self.assertIn("遊んでくれてありがとう！", output)
 
 
