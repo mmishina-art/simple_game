@@ -1,0 +1,9 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+extend-exclude = [".venv", "node_modules"]
+
+[tool.ruff.lint]
+# E/W: 書き方の基本、F: 使っていない変数や import などの間違い、I: import の並び順、
+# B: バグになりやすい書き方、UP: 古い書き方を新しい Python の書き方に
+select = ["E", "W", "F", "I", "B", "UP"]
