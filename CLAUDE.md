@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A small terminal Hit & Blow game (3–5 distinct digits depending on difficulty, "hits" = right digit in the right place, "blows" = right digit in the wrong place) in Python (standard library only, no dependencies). The owner uses this repo to learn AI-assisted development with Claude Code, so keep changes small and explain the reasoning behind each step. User-facing text and explanations are in Japanese.
+A small terminal Hit & Blow game (3–5 distinct digits depending on difficulty, "hits" = right digit in the right place, "blows" = right digit in the wrong place) with two front ends: a terminal version in Python (`hit_and_blow.py`, standard library only) and a smartphone-friendly web version in plain HTML/CSS/JavaScript (`web/`, no build step or dependencies). Keep the rules of the two versions in sync. The owner uses this repo to learn AI-assisted development with Claude Code, so keep changes small and explain the reasoning behind each step. User-facing text and explanations are in Japanese.
 
 ## Running
 
@@ -17,6 +17,14 @@ The game reads from stdin interactively, so it cannot be played through Claude C
 ```bash
 printf '2\n0123\nq\nn\n' | python3 -c "import random, runpy; random.seed(1); runpy.run_path('hit_and_blow.py', run_name='__main__')"
 ```
+
+### Web version
+
+```bash
+python3 -m http.server -d web 8000   # then open http://localhost:8000
+```
+
+ES modules need to be served over HTTP; opening `index.html` as a file does not work. There is no headless browser in this environment, so UI changes must be checked by the user in a real browser.
 
 ## Testing
 
@@ -35,7 +43,9 @@ Coverage is measured with coverage.py, installed in a local venv (`.venv/`, git-
 
 The only uncovered lines are the `if __name__ == "__main__":` entry points, which is expected.
 
-GitHub Actions (`.github/workflows/test.yml`) runs `python -m unittest -v` on Python 3.14 for pushes to `main` and for every pull request (feature-branch pushes are covered by the PR run, so they are not run twice). There is no linter or build step.
+Web logic tests use Node's built-in test runner (no install): `npm test` runs `web/*.test.js`.
+
+GitHub Actions (`.github/workflows/test.yml`) runs the Python tests on Python 3.14 and `npm test` on Node 24 for pushes to `main` and for every pull request (feature-branch pushes are covered by the PR run, so they are not run twice). There is no linter or build step.
 
 ## Structure
 
@@ -47,3 +57,9 @@ GitHub Actions (`.github/workflows/test.yml`) runs `python -m unittest -v` on Py
 - `main()` shows `print_rules()` once, then loops: `choose_difficulty()` → `play()` → `record_best()` (wins only) → `ask_play_again()`.
 - High scores live only in memory: `main()` keeps a `best` dict of difficulty name → fewest tries, which `record_best()` updates (a tie is not a new record).
 - Tests call functions through `run_with_inputs(func, inputs, *args)` and fix the answer with `fixed_answer()`.
+
+`web/` (published to GitHub Pages by `.github/workflows/pages.yml` on pushes to `main` that touch `web/`):
+- `logic.js` holds the rules as pure functions (`makeAnswer`, `countHitsAndBlows`, `updateBest`) mirroring the Python version; `logic.test.js` tests them.
+- Hint mode (web only): `excludedDigits()` brute-forces every answer consistent with the history and returns digits that appear in none of them; `app.js` strikes those digits through on the keypad but keeps them pressable. A win in a game where the hint was shown at any point is not recorded as a best score (`state.usedHint`).
+- `app.js` handles the DOM only. The on-screen keypad disables used digits, so duplicate digits can't be entered.
+- Best scores are keyed by digit count and saved in `localStorage` (wrapped in try/catch so the game still works without it).

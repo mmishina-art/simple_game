@@ -1,0 +1,257 @@
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --text: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --primary: #1f6feb;
+  --primary-text: #ffffff;
+  --hit: #1a7f37;
+  --blow: #9a6700;
+  --win: #dafbe1;
+  --lose: #ffebe9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --text: #e6edf3;
+    --muted: #9198a1;
+    --border: #3d444d;
+    --primary: #2f81f7;
+    --primary-text: #ffffff;
+    --hit: #3fb950;
+    --blow: #d29922;
+    --win: #12361f;
+    --lose: #3d1418;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 8px 0 16px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 24px 0 12px;
+}
+
+button {
+  font: inherit;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+  font-weight: bold;
+}
+
+.link {
+  border: none;
+  background: none;
+  color: var(--muted);
+  text-decoration: underline;
+  padding: 12px;
+}
+
+.sub-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 8px;
+}
+
+/* ヒントで「使われていない」と確定した数字 */
+.keypad button.excluded {
+  text-decoration: line-through;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.rules {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 16px;
+}
+
+.rules summary {
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.rules ul {
+  padding-left: 1.2em;
+  margin: 8px 0;
+}
+
+.difficulty-buttons {
+  display: grid;
+  gap: 12px;
+}
+
+.difficulty-buttons button {
+  padding: 14px 16px;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.difficulty-buttons .best {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.status {
+  text-align: center;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+.history {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: grid;
+  gap: 6px;
+}
+
+.history li {
+  display: grid;
+  grid-template-columns: 3em 1fr auto;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.history .no {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.history .guess {
+  font-family: ui-monospace, monospace;
+  font-size: 1.2rem;
+  letter-spacing: 0.15em;
+}
+
+.history .hit {
+  color: var(--hit);
+  font-weight: bold;
+}
+
+.history .blow {
+  color: var(--blow);
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.result {
+  text-align: center;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-weight: bold;
+}
+
+.result.win {
+  background: var(--win);
+}
+
+.result.lose {
+  background: var(--lose);
+}
+
+.result .sub {
+  display: block;
+  font-weight: normal;
+  margin-top: 4px;
+}
+
+.slots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.slots span {
+  width: 48px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  font-family: ui-monospace, monospace;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+}
+
+.slots span.filled {
+  border-color: var(--primary);
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.keypad button {
+  height: 56px;
+  font-size: 1.4rem;
+  font-family: ui-monospace, monospace;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actions button {
+  height: 52px;
+}
