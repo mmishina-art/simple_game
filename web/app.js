@@ -1,8 +1,10 @@
-// 画面の操作。ルールの計算は logic.js に任せる。
+// 画面の操作。ルールの計算は logic.js、音と演出は effects.js に任せる。
 
 import { DIFFICULTIES, MAX_TRIES, countHitsAndBlows, excludedDigits, makeAnswer, updateBest } from "./logic.js";
+import { confetti, isSoundOn, playSound, playSoundLater, reducedMotion, setSoundOn, vibrate, wait } from "./effects.js";
 
 const BEST_KEY = "hit-and-blow-best";
+const REVEAL_MS = 250; // ヒット・ブローを 1 つずつ発表する間隔
 
 const $ = (id) => document.getElementById(id);
 
@@ -12,6 +14,10 @@ const state = {
   input: "",
   history: [],
   finished: false,
+  outcome: null, // "win" | "lose"
+  near: false, // 直前の予想が「あと 1 ヒット」だったか
+  revealing: false, // ヒット・ブローを発表している途中か（その間は操作できない）
+  reveal: null, // 発表途中の最後の行: { hits, blows, pop: "hit" | "blow" | null }
   showHint: false, // ゲームをまたいでオン・オフを覚えておく
   usedHint: false, // このゲーム中に一度でもヒントを表示したか（したら記録しない）
 };
@@ -46,6 +52,37 @@ function registerServiceWorker() {
   }
 }
 
+/**
+ * 直前の結果に合わせて背景の色の濃さ（--heat: 0〜1）と色味（--hit-share）を決める。
+ * ヒット 2 点・ブロー 1 点で、全部ヒットを 1 とする。難易度選択の画面と負けたときは 0。
+ */
+function renderBackground() {
+  const heatOf = (r) => (r ? (r.hits * 2 + r.blows) / (state.digits * 2) : 0);
+  let last = state.history.at(-1);
+  if (state.reveal) {
+    // 発表中は、ひとつ前の結果の色を保ったまま、それを超えたら濃くしていく（毎回いったん元の色に戻らないように）
+    const previous = state.history.at(-2);
+    last = heatOf(state.reveal) >= heatOf(previous) ? state.reveal : previous;
+  }
+  const playing = !$("game-screen").hidden && state.outcome !== "lose";
+  const heat = playing ? heatOf(last) : 0;
+  const found = last ? last.hits + last.blows : 0;
+  const hitShare = found ? (last.hits / found) * 100 : 100;
+  document.body.style.setProperty("--heat", String(heat));
+  document.body.style.setProperty("--hit-share", `${hitShare}%`);
+}
+
+/** 画面の読み上げを使っている人に、結果を読み上げてもらう（画面には出さない）。 */
+function announce(message) {
+  $("announce").textContent = message;
+}
+
+function renderSoundButton() {
+  const on = isSoundOn();
+  $("sound-button").textContent = on ? "🔊" : "🔇";
+  $("sound-button").setAttribute("aria-pressed", String(on));
+}
+
 function showStart() {
   const best = loadBest();
   const buttons = $("difficulty-buttons");
@@ -65,6 +102,7 @@ function showStart() {
   );
   $("start-screen").hidden = false;
   $("game-screen").hidden = true;
+  renderBackground();
 }
 
 function startGame(digits) {
@@ -74,6 +112,10 @@ function startGame(digits) {
     input: "",
     history: [],
     finished: false,
+    outcome: null,
+    near: false,
+    revealing: false,
+    reveal: null,
     usedHint: state.showHint,
   });
   $("start-screen").hidden = true;
@@ -84,20 +126,33 @@ function startGame(digits) {
   render();
 }
 
+function historyItem({ guess, hits, blows }, i, isLast) {
+  // 発表の途中なら、最後の行はそこまでに発表した数だけ表示する
+  const shown = isLast && state.reveal ? state.reveal : { hits, blows, pop: null };
+  const li = document.createElement("li");
+  li.innerHTML = `<span class="no">${i + 1}</span><span class="guess"></span>`
+    + `<span><span class="hit">${shown.hits} H</span><span class="blow">${shown.blows} B</span></span>`;
+  li.querySelector(".guess").textContent = guess;
+  if (shown.pop) li.querySelector(`.${shown.pop}`).classList.add("pop");
+  if (isLast && state.outcome === "win") li.classList.add("glow");
+  return li;
+}
+
+// ヒントの計算は重い（5 桁で約 3 万通り調べる）ので、同じ桁数・同じ結果の並びなら前回の答えを使う
+let excludedCache = { key: "", value: [] };
+function cachedExcludedDigits(digits, known) {
+  const key = `${digits}:${known.map((h) => `${h.guess}/${h.hits}/${h.blows}`).join(",")}`;
+  if (excludedCache.key !== key) excludedCache = { key, value: excludedDigits(digits, known) };
+  return excludedCache.value;
+}
+
 function render() {
-  const { digits, input, history } = state;
+  const { digits, input, history, revealing } = state;
   const remaining = MAX_TRIES - history.length;
   $("status").textContent = state.finished ? "" : `${digits} 桁 ・ 残り ${remaining} 回`;
+  $("near").hidden = !state.near || state.finished;
 
-  $("history").replaceChildren(
-    ...history.map(({ guess, hits, blows }, i) => {
-      const li = document.createElement("li");
-      li.innerHTML = `<span class="no">${i + 1}</span><span class="guess"></span>`
-        + `<span><span class="hit">${hits} H</span><span class="blow">${blows} B</span></span>`;
-      li.querySelector(".guess").textContent = guess;
-      return li;
-    }),
-  );
+  $("history").replaceChildren(...history.map((item, i) => historyItem(item, i, i === history.length - 1)));
 
   $("slots").replaceChildren(
     ...Array.from({ length: digits }, (_, i) => {
@@ -109,7 +164,9 @@ function render() {
   );
 
   // ヒント: 使われていないと確定した数字に打ち消し線を引く（押せなくはしない）
-  const excluded = state.showHint ? excludedDigits(digits, history) : [];
+  // 発表の途中は、まだ見せていない結果を先に漏らさないよう、ひとつ前までの結果で計算する
+  const known = revealing ? history.slice(0, -1) : history;
+  const excluded = state.showHint ? cachedExcludedDigits(digits, known) : [];
   $("hint-button").textContent = state.showHint ? "ヒントを隠す" : "ヒントを表示";
   $("hint-button").setAttribute("aria-pressed", String(state.showHint));
   $("hint").hidden = !state.showHint;
@@ -119,50 +176,114 @@ function render() {
 
   // 使った数字と、桁がいっぱいのときは押せなくする（重複入力を画面側で防ぐ）
   for (const button of $("keypad").children) {
-    button.disabled = input.includes(button.textContent) || input.length >= digits;
+    button.disabled = revealing || input.includes(button.textContent) || input.length >= digits;
     button.classList.toggle("excluded", excluded.includes(button.textContent));
   }
-  $("delete-button").disabled = input.length === 0;
-  $("submit-button").disabled = input.length !== digits;
+  $("delete-button").disabled = revealing || input.length === 0;
+  $("submit-button").disabled = revealing || input.length !== digits;
+  $("hint-button").disabled = revealing;
+  $("give-up-button").disabled = revealing;
+  renderBackground();
 }
 
-function submitGuess() {
+async function submitGuess() {
   const { answer, input, digits } = state;
-  if (input.length !== digits) return;
+  if (input.length !== digits || state.revealing || state.finished) return;
+  playSound("submit");
   const { hits, blows } = countHitsAndBlows(answer, input);
   state.history.push({ guess: input, hits, blows });
   state.input = "";
+  state.near = false;
+  state.revealing = true;
+  state.reveal = { hits: 0, blows: 0, pop: null };
+  render();
+
+  // ヒット → ブローの順に 1 つずつ発表する。音は数が増えるほど高くなる。
+  // 動きを減らす設定では wait() が待たないので、音だけ間隔を空けて予約し、同時に鳴らないようにする
+  const gap = reducedMotion() ? REVEAL_MS / 1000 : 0;
+  let delay = 0;
+  const sound = (name, ...args) => {
+    delay += gap;
+    playSoundLater(delay, name, ...args);
+  };
+  for (let i = 0; i < hits; i++) {
+    await wait(REVEAL_MS);
+    state.reveal = { ...state.reveal, hits: i + 1, pop: "hit" };
+    sound("hit", i);
+    render();
+  }
+  for (let i = 0; i < blows; i++) {
+    await wait(REVEAL_MS);
+    state.reveal = { ...state.reveal, blows: i + 1, pop: "blow" };
+    sound("blow", i);
+    render();
+  }
+  if (hits + blows === 0) {
+    await wait(REVEAL_MS);
+    sound("miss");
+  }
+  await wait(REVEAL_MS);
+  announce(`${state.history.length} 回目、${hits} ヒット ${blows} ブロー`);
+  state.revealing = false;
+  state.reveal = null;
 
   if (hits === digits) {
-    finish("win", `正解！ ${state.history.length} 回で当たりました。`, recordWin());
+    const { text, isNew } = recordWin();
+    state.outcome = "win";
+    sound(isNew ? "record" : "win");
+    vibrate([60, 40, 120]);
+    confetti();
+    finish("win", `正解！ ${state.history.length} 回で当たりました。`, { sub: text, isNew });
   } else if (state.history.length >= MAX_TRIES) {
-    finish("lose", `残念！ 正解は ${answer} でした。`);
+    lose(`残念！ 正解は ${answer} でした。`, sound);
+  } else if (hits === digits - 1) {
+    state.near = true;
+    sound("near");
   }
   render();
 }
 
-/** 勝ったときの最高記録を更新し、表示する一言を返す。ヒントを使ったゲームは記録しない。 */
+/** 勝ったときの最高記録を更新し、表示する一言と新記録かどうかを返す。ヒントを使ったゲームは記録しない。 */
 function recordWin() {
   const { digits } = state;
   if (state.usedHint) {
     const best = loadBest()[digits];
-    return `ヒントを使ったので記録しません${best ? `（最高記録 ${best} 回）` : ""}`;
+    return { text: `ヒントを使ったので記録しません${best ? `（最高記録 ${best} 回）` : ""}`, isNew: false };
   }
   const { best, isNew } = updateBest(loadBest(), digits, state.history.length);
   saveBest(best);
-  return isNew ? `新記録！ 最高記録 ${best[digits]} 回` : `最高記録 ${best[digits]} 回`;
+  return { text: isNew ? `新記録！ 最高記録 ${best[digits]} 回` : `最高記録 ${best[digits]} 回`, isNew };
 }
 
-function finish(kind, message, sub = "") {
+function lose(message, sound = playSound) {
+  state.outcome = "lose";
+  sound("lose");
+  finish("lose", message, { answerCards: true });
+}
+
+function finish(kind, message, { sub = "", isNew = false, answerCards = false } = {}) {
   state.finished = true;
   const result = $("result");
   result.className = `result ${kind}`;
   result.textContent = message;
   if (sub) {
     const span = document.createElement("span");
-    span.className = "sub";
+    span.className = isNew ? "sub new-record" : "sub";
     span.textContent = sub;
     result.append(span);
+  }
+  if (answerCards) {
+    // 答えの数字を 1 枚ずつめくって見せる
+    const cards = document.createElement("span");
+    cards.className = "answer-cards";
+    cards.setAttribute("aria-hidden", "true"); // 文章の中で答えは読み上げ済み
+    [...state.answer].forEach((digit, i) => {
+      const card = document.createElement("span");
+      card.textContent = digit;
+      card.style.animationDelay = `${i * 0.15}s`;
+      cards.append(card);
+    });
+    result.append(cards);
   }
   result.hidden = false;
   $("input-area").hidden = true;
@@ -172,14 +293,22 @@ function finish(kind, message, sub = "") {
 function setup() {
   $("max-tries").textContent = MAX_TRIES;
 
+  renderSoundButton();
+  $("sound-button").addEventListener("click", () => {
+    setSoundOn(!isSoundOn());
+    renderSoundButton();
+    playSound("tap"); // オンにしたときは、鳴ることをその場で確かめられる
+  });
+
   $("keypad").replaceChildren(
     ..."1234567890".split("").map((digit) => {
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = digit;
       button.addEventListener("click", () => {
-        if (state.input.length < state.digits && !state.input.includes(digit)) {
+        if (!state.revealing && state.input.length < state.digits && !state.input.includes(digit)) {
           state.input += digit;
+          playSound("tap");
           render();
         }
       });
@@ -189,6 +318,7 @@ function setup() {
 
   $("delete-button").addEventListener("click", () => {
     state.input = state.input.slice(0, -1);
+    playSound("erase");
     render();
   });
   $("submit-button").addEventListener("click", submitGuess);
@@ -198,7 +328,8 @@ function setup() {
     render();
   });
   $("give-up-button").addEventListener("click", () => {
-    finish("lose", `ギブアップ！ 正解は ${state.answer} でした。`);
+    if (state.revealing) return;
+    lose(`ギブアップ！ 正解は ${state.answer} でした。`);
     render();
   });
   $("retry-button").addEventListener("click", () => startGame(state.digits));

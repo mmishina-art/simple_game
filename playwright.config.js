@@ -10,6 +10,8 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
+    // 演出の待ち時間をなくして速く安定させる。演出そのものを見るテストだけ個別に戻す
+    reducedMotion: "reduce",
   },
   // スマホでの利用が中心なので、スマホの画面サイズ・タッチ操作で確かめる
   projects: [{ name: "mobile", use: { ...devices["Pixel 7"] } }],

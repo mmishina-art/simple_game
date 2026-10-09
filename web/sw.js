@@ -12,6 +12,7 @@ const FILES = [
   "style.css",
   "app.js",
   "logic.js",
+  "effects.js",
   "manifest.webmanifest",
   "icons/icon-180.png",
   "icons/icon-192.png",

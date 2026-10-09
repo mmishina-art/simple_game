@@ -10,6 +10,7 @@
   --blow: #9a6700;
   --win: #dafbe1;
   --lose: #ffebe9;
+  --tint-max: 16%; /* 背景に混ぜる色の上限（やりすぎない程度に） */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,6 +26,7 @@
     --blow: #d29922;
     --win: #12361f;
     --lose: #3d1418;
+    --tint-max: 12%; /* 暗い背景では色が目立ちやすいので控えめに */
   }
 }
 
@@ -32,9 +34,23 @@
   box-sizing: border-box;
 }
 
+/* display を指定した要素（.actions など）でも hidden 属性で確実に隠す */
+[hidden] {
+  display: none !important;
+}
+
 body {
+  /* 直前の結果で背景をほんのり色づける。--heat（0〜1）は app.js が設定する。
+     ヒットが多いほど緑、ブローが多いほど黄に寄る */
+  --heat: 0;
+  --hit-share: 100%;
   margin: 0;
-  background: var(--bg);
+  background: color-mix(
+    in srgb,
+    color-mix(in srgb, var(--hit) var(--hit-share), var(--blow)) calc(var(--heat) * var(--tint-max)),
+    var(--bg)
+  );
+  transition: background-color 0.8s ease;
   color: var(--text);
   font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
   line-height: 1.6;
@@ -47,10 +63,26 @@ main {
   padding: 16px;
 }
 
+.header {
+  position: relative;
+  margin: 8px 0 16px;
+}
+
 h1 {
   font-size: 1.5rem;
-  margin: 8px 0 16px;
+  margin: 0;
   text-align: center;
+}
+
+.sound-button {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  font-size: 1.3rem;
+  line-height: 1;
 }
 
 h2 {
@@ -66,6 +98,18 @@ button {
   color: var(--text);
   cursor: pointer;
   touch-action: manipulation;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.94);
+}
+
+.sound-button:not(:disabled):active {
+  transform: translateY(-50%) scale(0.94);
+}
+
+button {
+  transition: transform 0.06s;
 }
 
 button:disabled {
@@ -254,4 +298,121 @@ button:disabled {
 
 .actions button {
   height: 52px;
+}
+
+/* ---- 演出 ---- */
+
+.near {
+  text-align: center;
+  font-weight: bold;
+  color: var(--blow);
+  margin: -8px 0 12px;
+  animation: shake 0.5s;
+}
+
+/* ヒット・ブローが 1 つ増えるたびにポンと弾む */
+.history .hit,
+.history .blow {
+  display: inline-block;
+}
+
+.history .pop {
+  animation: pop 0.25s ease-out;
+}
+
+/* 当てた行を光らせる */
+.history li.glow {
+  border-color: var(--hit);
+  animation: glow 1.2s ease-in-out 2;
+}
+
+.result .new-record {
+  font-weight: bold;
+  background: linear-gradient(90deg, var(--text) 40%, #f2cc60 50%, var(--text) 60%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine 1.5s linear 3;
+}
+
+.answer-cards {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  perspective: 400px;
+}
+
+.answer-cards span {
+  width: 36px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  font-family: ui-monospace, monospace;
+  font-size: 1.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  animation: flip 0.4s ease-out both;
+}
+
+/* 画面には出さず、読み上げだけに使う */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+
+@keyframes glow {
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--hit) 35%, transparent); }
+}
+
+@keyframes shine {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+@keyframes flip {
+  from { transform: rotateY(90deg); opacity: 0; }
+  to { transform: rotateY(0); opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+/* 「視差効果を減らす」がオンなら動きを止める */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .result .new-record {
+    color: var(--text);
+    background: none;
+  }
 }
