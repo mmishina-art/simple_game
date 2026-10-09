@@ -35,6 +35,21 @@ test("最初の画面にルールと 3 つの難易度が出る", async ({ page 
   await expect(buttons.nth(0)).toContainText("記録なし");
 });
 
+test("ゲーム中は終わったあとのボタンが出ず、終わると入力欄が消える", async ({ page }) => {
+  await expect(page.locator("#game-screen")).toBeHidden();
+  await start(page, "かんたん");
+  await expect(page.locator("#start-screen")).toBeHidden();
+  await expect(page.getByRole("button", { name: "もう一度" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "難易度を選ぶ" })).toBeHidden();
+  await expect(result(page)).toBeHidden();
+  await expect(page.locator("#near")).toBeHidden();
+
+  await guess(page, "012");
+  await expect(page.getByRole("button", { name: "もう一度" })).toBeVisible();
+  await expect(page.locator("#input-area")).toBeHidden();
+  await expect(page.getByRole("button", { name: "決定" })).toBeHidden();
+});
+
 test("使った数字は押せず、桁がそろうまで決定できない", async ({ page }) => {
   await start(page, "ふつう");
   const keypad = page.locator("#keypad");
