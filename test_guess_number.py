@@ -16,43 +16,75 @@ def run_with_inputs(func, inputs):
     return result, output.getvalue()
 
 
+def fixed_answer(answer):
+    """答えを answer に固定する。"""
+    return patch("guess_number.make_answer", return_value=answer)
+
+
+class TestMakeAnswer(unittest.TestCase):
+    def test_has_distinct_digits(self):
+        for _ in range(100):
+            answer = guess_number.make_answer()
+            self.assertEqual(len(answer), guess_number.DIGITS)
+            self.assertEqual(len(set(answer)), guess_number.DIGITS)
+            self.assertTrue(answer.isdigit())
+
+
 class TestReadGuess(unittest.TestCase):
-    def test_returns_valid_number(self):
-        result, _ = run_with_inputs(guess_number.read_guess, ["42"])
-        self.assertEqual(result, 42)
+    def test_returns_valid_guess(self):
+        result, _ = run_with_inputs(guess_number.read_guess, ["0123"])
+        self.assertEqual(result, "0123")
 
-    def test_asks_again_for_non_number(self):
-        result, output = run_with_inputs(guess_number.read_guess, ["abc", "42"])
-        self.assertEqual(result, 42)
-        self.assertIn("数字を入力してください。", output)
+    def test_asks_again_for_wrong_length_or_non_digits(self):
+        result, output = run_with_inputs(
+            guess_number.read_guess, ["123", "12345", "12a4", "１２３４", "1234"]
+        )
+        self.assertEqual(result, "1234")
+        self.assertEqual(output.count("桁の数字を入力してください。"), 4)
 
-    def test_asks_again_for_out_of_range(self):
-        result, output = run_with_inputs(guess_number.read_guess, ["0", "101", "100"])
-        self.assertEqual(result, 100)
-        self.assertEqual(output.count("の範囲で入力してください。"), 2)
+    def test_asks_again_for_repeated_digits(self):
+        result, output = run_with_inputs(guess_number.read_guess, ["1123", "1234"])
+        self.assertEqual(result, "1234")
+        self.assertIn("同じ数字は使えません。", output)
+
+
+class TestCountHitsAndBlows(unittest.TestCase):
+    def test_examples(self):
+        cases = [
+            ("1234", "1234", (4, 0)),
+            ("1234", "5678", (0, 0)),
+            ("1234", "4321", (0, 4)),
+            ("1234", "1243", (2, 2)),
+            ("1234", "1567", (1, 0)),
+            ("1234", "5167", (0, 1)),
+            ("1234", "1395", (1, 1)),
+        ]
+        for answer, guess, expected in cases:
+            with self.subTest(answer=answer, guess=guess):
+                self.assertEqual(guess_number.count_hits_and_blows(answer, guess), expected)
 
 
 class TestPlay(unittest.TestCase):
     def test_hints_and_try_count(self):
-        with patch("random.randint", return_value=30):
-            _, output = run_with_inputs(guess_number.play, ["50", "10", "30"])
-        self.assertIn("もっと小さいです。", output)
-        self.assertIn("もっと大きいです。", output)
+        with fixed_answer("1234"):
+            _, output = run_with_inputs(guess_number.play, ["5678", "1243", "1234"])
+        self.assertIn("0 ヒット 0 ブロー", output)
+        self.assertIn("2 ヒット 2 ブロー", output)
         self.assertIn("正解！ 3 回で当たりました。", output)
         self.assertIn("残り 8 回です。", output)
 
     def test_correct_on_last_try_wins(self):
-        inputs = ["1"] * (guess_number.MAX_TRIES - 1) + ["30"]
-        with patch("random.randint", return_value=30):
+        inputs = ["5678"] * (guess_number.MAX_TRIES - 1) + ["1234"]
+        with fixed_answer("1234"):
             _, output = run_with_inputs(guess_number.play, inputs)
         self.assertIn(f"正解！ {guess_number.MAX_TRIES} 回で当たりました。", output)
         self.assertNotIn("残念！", output)
 
     def test_game_over_after_max_tries(self):
-        inputs = ["1"] * guess_number.MAX_TRIES
-        with patch("random.randint", return_value=30):
+        inputs = ["5678"] * guess_number.MAX_TRIES
+        with fixed_answer("0123"):
             _, output = run_with_inputs(guess_number.play, inputs)
-        self.assertIn("残念！ 正解は 30 でした。", output)
+        self.assertIn("残念！ 正解は 0123 でした。", output)
         self.assertNotIn("正解！", output)
         self.assertNotIn("残り 0 回", output)
 
@@ -74,9 +106,9 @@ class TestAskPlayAgain(unittest.TestCase):
 
 class TestMain(unittest.TestCase):
     def test_plays_until_user_says_no(self):
-        with patch("random.randint", return_value=30):
-            _, output = run_with_inputs(guess_number.main, ["30", "y", "30", "n"])
-        self.assertEqual(output.count("数当てゲームを始めます！"), 2)
+        with fixed_answer("1234"):
+            _, output = run_with_inputs(guess_number.main, ["1234", "y", "1234", "n"])
+        self.assertEqual(output.count("ヒット＆ブローを始めます！"), 2)
         self.assertIn("遊んでくれてありがとう！", output)
 
 

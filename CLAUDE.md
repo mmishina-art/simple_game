@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A small terminal number-guessing game in Python (standard library only, no dependencies). The owner uses this repo to learn AI-assisted development with Claude Code, so keep changes small and explain the reasoning behind each step. User-facing text and explanations are in Japanese.
+A small terminal Hit & Blow game (4 distinct digits, "hits" = right digit in the right place, "blows" = right digit in the wrong place) in Python (standard library only, no dependencies). The owner uses this repo to learn AI-assisted development with Claude Code, so keep changes small and explain the reasoning behind each step. User-facing text and explanations are in Japanese.
 
 ## Running
 
@@ -15,12 +15,12 @@ python3 guess_number.py
 The game reads from stdin interactively, so it cannot be played through Claude Code's Bash tool. To verify behavior non-interactively, pipe input and fix the random seed:
 
 ```bash
-printf '50\n25\n75\n' | python3 -c "import random, runpy; random.seed(1); runpy.run_path('guess_number.py', run_name='__main__')"
+printf '0123\n4567\n' | python3 -c "import random, runpy; random.seed(1); runpy.run_path('guess_number.py', run_name='__main__')"
 ```
 
 ## Testing
 
-Tests use the standard-library `unittest` (no install needed). They patch `builtins.input` and `random.randint` to drive the game without a keyboard.
+Tests use the standard-library `unittest` (no install needed). They patch `builtins.input` and `guess_number.make_answer` to drive the game without a keyboard.
 
 ```bash
 python3 -m unittest -v                                              # all tests
@@ -39,8 +39,9 @@ There is no linter or build step.
 
 ## Structure
 
-`guess_number.py` holds everything:
-- `MIN_NUMBER` / `MAX_NUMBER` define the range; prompts and validation derive from them, so change the range only there.
-- `read_guess()` loops until it gets a valid integer within the range.
-- `play()` runs one game: picks the answer, gives higher/lower hints, and ends in a loss after `MAX_TRIES` wrong guesses.
+`guess_number.py` holds everything (the filename predates the switch to Hit & Blow):
+- `DIGITS` / `MAX_TRIES` are the game's settings; prompts, validation and tests derive from them, so change them only there.
+- Answers and guesses are strings, not ints, so a leading `0` is kept.
+- `count_hits_and_blows()` is the core scoring logic; `read_guess()` rejects wrong length, non-ASCII digits and repeated digits.
+- `play()` runs one game and ends in a loss after `MAX_TRIES` wrong guesses.
 - `main()` repeats `play()` while `ask_play_again()` returns True.
