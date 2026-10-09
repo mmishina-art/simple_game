@@ -9,6 +9,7 @@ import random
 DIGITS = 4
 MAX_TRIES = 10
 ALL_DIGITS = "0123456789"
+GIVE_UP = "q"
 
 
 def make_answer() -> str:
@@ -16,10 +17,12 @@ def make_answer() -> str:
     return "".join(random.sample(ALL_DIGITS, DIGITS))
 
 
-def read_guess() -> str:
-    """重複のない DIGITS 桁の数字が入力されるまで聞き直す。"""
+def read_guess() -> str | None:
+    """重複のない DIGITS 桁の数字が入力されるまで聞き直す。ギブアップなら None。"""
     while True:
-        text = input(f"{DIGITS} 桁の数字を入力してください: ").strip()
+        text = input(f"{DIGITS} 桁の数字を入力してください（{GIVE_UP} でギブアップ）: ").strip()
+        if text.lower() == GIVE_UP:
+            return None
         if len(text) != DIGITS or any(c not in ALL_DIGITS for c in text):
             print(f"{DIGITS} 桁の数字を入力してください。")
         elif len(set(text)) != DIGITS:
@@ -50,6 +53,9 @@ def play() -> None:
 
     for tries in range(1, MAX_TRIES + 1):
         guess = read_guess()
+        if guess is None:
+            print(f"ギブアップ！ 正解は {answer} でした。")
+            return
         hits, blows = count_hits_and_blows(answer, guess)
         if hits == DIGITS:
             print(f"正解！ {tries} 回で当たりました。")
@@ -79,6 +85,7 @@ def print_rules() -> None:
     print("・数字も場所も合っていれば「ヒット」、数字だけ合っていれば「ブロー」です。")
     print("  例: 答えが 1234 で 1395 と入力すると、1 ヒット 1 ブロー")
     print(f"・{MAX_TRIES} 回以内に {DIGITS} ヒットにすれば勝ちです。")
+    print(f"・{GIVE_UP} を入力するとギブアップして答えを見られます。")
     print("================================")
 
 

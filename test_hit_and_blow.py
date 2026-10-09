@@ -47,6 +47,12 @@ class TestReadGuess(unittest.TestCase):
         self.assertEqual(result, "1234")
         self.assertIn("同じ数字は使えません。", output)
 
+    def test_returns_none_on_give_up(self):
+        for text in ["q", " Q "]:
+            with self.subTest(text=text):
+                result, _ = run_with_inputs(hit_and_blow.read_guess, [text])
+                self.assertIsNone(result)
+
 
 class TestCountHitsAndBlows(unittest.TestCase):
     def test_examples(self):
@@ -94,6 +100,12 @@ class TestPlay(unittest.TestCase):
         self.assertIn("残念！ 正解は 0123 でした。", output)
         self.assertNotIn("正解！", output)
         self.assertNotIn("残り 0 回", output)
+
+    def test_give_up_shows_answer(self):
+        with fixed_answer("0123"):
+            _, output = run_with_inputs(hit_and_blow.play, ["5678", "q"])
+        self.assertIn("ギブアップ！ 正解は 0123 でした。", output)
+        self.assertNotIn("残念！", output)
 
 
 class TestAskPlayAgain(unittest.TestCase):

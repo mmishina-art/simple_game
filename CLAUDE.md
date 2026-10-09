@@ -42,7 +42,7 @@ There is no linter or build step.
 `hit_and_blow.py` holds everything:
 - `DIGITS` / `MAX_TRIES` are the game's settings; prompts, validation and tests derive from them, so change them only there.
 - Answers and guesses are strings, not ints, so a leading `0` is kept.
-- `count_hits_and_blows()` is the core scoring logic; `read_guess()` rejects wrong length, non-ASCII digits and repeated digits.
+- `count_hits_and_blows()` is the core scoring logic; `read_guess()` rejects wrong length, non-ASCII digits and repeated digits, and returns `None` when the player gives up with `GIVE_UP` ("q").
 - `play()` runs one game, shows the full guess history via `print_history()` after each miss, and ends in a loss after `MAX_TRIES` wrong guesses.
 - `main()` shows `print_rules()` once, then repeats `play()` while `ask_play_again()` returns True.
 - The example in `print_rules()` (1234 → 1395) is hard-coded for 4 digits; update it if `DIGITS` changes.
