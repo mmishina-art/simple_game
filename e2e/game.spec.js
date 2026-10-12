@@ -172,3 +172,14 @@ test("バージョンが表示され、更新のお知らせは普段は隠れ�
   await expect(page.locator("#app-version")).not.toBeEmpty();
   await expect(page.locator("#update-banner")).toBeHidden();
 });
+
+test("最初の画面からインストール方法を開ける（使っている端末の説明が開いている）", async ({ page }) => {
+  await page.getByRole("button", { name: /インストールする方法/ }).click();
+  const dialog = page.locator("#install-dialog");
+  await expect(dialog).toBeVisible();
+  // Pixel 7 のプロファイルなので Android の説明が開いている
+  await expect(dialog.locator('details[data-platform="android"]')).toHaveJSProperty("open", true);
+  await expect(dialog.locator('details[data-platform="ios"]')).toHaveJSProperty("open", false);
+  await dialog.getByRole("button", { name: "とじる" }).click();
+  await expect(dialog).toBeHidden();
+});

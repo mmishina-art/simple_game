@@ -22,7 +22,7 @@ test("sw.js がキャッシュするファイルは、すべて存在する", ()
 
 test("web/ の画面・スクリプト・スタイルは、すべてキャッシュ対象に入っている", () => {
   const sw = read("sw.js");
-  for (const file of ["index.html", "style.css", "version.js", "app.js", "logic.js", "effects.js", "pwa.js"]) {
+  for (const file of ["index.html", "style.css", "version.js", "app.js", "logic.js", "effects.js", "pwa.js", "install.js"]) {
     assert.ok(sw.includes(`"${file}"`), `sw.js の FILES に ${file} がありません`);
   }
 });
