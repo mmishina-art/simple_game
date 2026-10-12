@@ -111,4 +111,4 @@ In `eslint.config.js`, `web/` gets browser globals, `web/sw.js` service-worker g
 - このリポジトリは CI(PR で lint / テスト / E2E、main で公開)・Lint・Playwright が揃っており、他のアプリの手本になっている。
 - 公開用 `pages.yml` は `web/**` の変更時のみ動く。公開前のテストは `test.yml` が PR で行うため、`pages.yml` 側ではテストを再実行していない。
 - Service Worker はネット優先方式(更新は自動で届く)。標準はキャッシュ優先 + 「更新」ボタン方式。変えるときは別 PR で。
-- `maskable` アイコンが通常の `icon-512.png` の流用 → 専用画像にしたい(`tools/make_icons.py` を編集して再生成)。
+- `maskable` は通常の `icon-512.png` と同じ画像を使っているが、背景が全面塗りで図柄が中央 50% に収まっているため、切り抜かれても欠けない(問題なし)。
