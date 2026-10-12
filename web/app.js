@@ -1,6 +1,8 @@
 // 画面の操作。ルールの計算は logic.js、音と演出は effects.js に任せる。
 
 import { DIFFICULTIES, MAX_TRIES, countHitsAndBlows, excludedDigits, makeAnswer, updateBest } from "./logic.js";
+import { APP_VERSION } from "./version.js";
+import { setupUpdateBanner } from "./pwa.js";
 import { confetti, isSoundOn, playSound, playSoundLater, reducedMotion, setSoundOn, vibrate, wait } from "./effects.js";
 
 const BEST_KEY = "hit-and-blow-best";
@@ -43,13 +45,6 @@ function saveBest(best) {
 // 許可されるかはブラウザ次第（ホーム画面に追加したアプリは許可されやすい）。
 function requestPersistentStorage() {
   navigator.storage?.persist?.().catch(() => {});
-}
-
-// オフラインでも遊べるようにサービスワーカーを登録する（https か localhost でだけ動く）
-function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
-  }
 }
 
 /**
@@ -354,7 +349,8 @@ function setup() {
 
   showStart();
   requestPersistentStorage();
-  registerServiceWorker();
+  $("app-version").textContent = APP_VERSION;
+  setupUpdateBanner($("update-banner"), $("update-button"));
 }
 
 setup();
