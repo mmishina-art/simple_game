@@ -22,7 +22,7 @@ test("sw.js がキャッシュするファイルは、すべて存在する", ()
 
 test("web/ の画面・スクリプト・スタイルは、すべてキャッシュ対象に入っている", () => {
   const sw = read("sw.js");
-  for (const file of ["index.html", "style.css", "version.js", "app.js", "logic.js", "effects.js", "pwa.js", "install.js"]) {
+  for (const file of ["index.html", "style.css", "boot.js", "version.js", "app.js", "logic.js", "effects.js", "pwa.js", "install.js"]) {
     assert.ok(sw.includes(`"${file}"`), `sw.js の FILES に ${file} がありません`);
   }
 });
@@ -36,4 +36,15 @@ test("viewport で拡大を禁止していない", () => {
   const viewport = /<meta name="viewport" content="([^"]*)"/.exec(read("index.html"))[1];
   assert.doesNotMatch(viewport, /user-scalable\s*=\s*(no|0)/);
   assert.doesNotMatch(viewport, /maximum-scale/);
+});
+
+test("index.html は boot.js を app.js より先に読み込み、復旧の表示（#boot-error / #boot-repair）を持つ", () => {
+  const html = read("index.html");
+  assert.ok(html.indexOf('src="boot.js"') !== -1 && html.indexOf('src="boot.js"') < html.indexOf('src="app.js"'), "boot.js を app.js より先に読み込んでください");
+  assert.match(html, /id="boot-error"/);
+  assert.match(html, /id="boot-repair"/);
+});
+
+test("app.js は起動できたら window.__appStarted = true にする", () => {
+  assert.match(read("app.js"), /window\.__appStarted = true/);
 });

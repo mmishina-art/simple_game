@@ -353,6 +353,8 @@ function setup() {
   $("app-version").textContent = APP_VERSION;
   setupUpdateBanner($("update-banner"), $("update-button"));
   setupInstallGuide($("install-open"), $("install-dialog"), $("install-now"));
+  // ここまで来たら起動成功（boot.js が見ている）
+  window.__appStarted = true;
 }
 
 setup();
