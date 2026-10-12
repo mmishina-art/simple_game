@@ -48,3 +48,13 @@ test("index.html は boot.js を app.js より先に読み込み、復旧の表�
 test("app.js は起動できたら window.__appStarted = true にする", () => {
   assert.match(read("app.js"), /window\.__appStarted = true/);
 });
+
+test("boot.js の復旧と sw.js の片づけは、このアプリの Service Worker とキャッシュ（hit-and-blow-）だけを対象にする", () => {
+  const boot = read("boot.js");
+  assert.match(boot, /regs\.filter\(isMyRegistration\)/);
+  assert.match(boot, /keys\.filter\(isMyCache\)/);
+  const id = /var APP_ID = "([^"]+)"/.exec(boot)[1];
+  const sw = read("sw.js");
+  assert.match(sw, new RegExp(`const CACHE = "${id}-v`));
+  assert.match(sw, new RegExp(`k\\.startsWith\\("${id}-"\\) && k !== CACHE`));
+});

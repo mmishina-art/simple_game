@@ -8,7 +8,7 @@
 // ・web/ にファイルを足したら FILES にも足すこと（実在しないファイルが載っていてもテストが失敗する）。
 // 最高記録は localStorage にあり、ここで扱うファイルの保存とは別なので消えない。
 
-const CACHE = "hit-and-blow-v1.3"; // version.js の APP_VERSION と同じ番号
+const CACHE = "hit-and-blow-v1.4"; // version.js の APP_VERSION と同じ番号
 const FILES = [
   "./",
   "index.html",
@@ -38,11 +38,11 @@ self.addEventListener("message", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  // 名前の違う古い保存領域を片付ける
+  // 古い版の保存領域を片付ける。名前が「hit-and-blow-」で始まるものだけ（同じサイトのほかのアプリのものは消さない）
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("hit-and-blow-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
