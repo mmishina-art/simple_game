@@ -167,3 +167,8 @@ test("一度開いたあとはオフラインでも開ける（PWA）", async ({
   await guess(page, "012");
   await expect(result(page)).toContainText("正解！ 1 回で当たりました。");
 });
+
+test("バージョンが表示され、更新のお知らせは普段は隠れている", async ({ page }) => {
+  await expect(page.locator("#app-version")).not.toBeEmpty();
+  await expect(page.locator("#update-banner")).toBeHidden();
+});

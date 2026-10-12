@@ -1,18 +1,23 @@
 // オフラインでも遊べるように、ゲームのファイルをスマホの中に保存しておく。
 //
-// ネット優先: つながるときは毎回サーバーから最新を取り、保存し直す。
-// つながらないときだけ保存しておいたものを使う。こうすると更新が出たとき
-// 古い版が表示され続けることがない。
+// キャッシュ優先: 保存しておいたものを先に使うので、起動が速く、オフラインでも確実に動く。
+// 新しい版はバックグラウンドで取得して待機させ、画面の「更新」ボタンが押されたときだけ切り替える
+// （遊んでいる最中に、古い画面と新しいファイルがまざらないようにするため）。
+//
+// ・公開するたびに、version.js の APP_VERSION と CACHE の番号を同じにして上げること（テストで確認）。
+// ・web/ にファイルを足したら FILES にも足すこと（実在しないファイルが載っていてもテストが失敗する）。
 // 最高記録は localStorage にあり、ここで扱うファイルの保存とは別なので消えない。
 
-const CACHE = "hit-and-blow-v1";
+const CACHE = "hit-and-blow-v1.0"; // version.js の APP_VERSION と同じ番号
 const FILES = [
   "./",
   "index.html",
   "style.css",
+  "version.js",
   "app.js",
   "logic.js",
   "effects.js",
+  "pwa.js",
   "manifest.webmanifest",
   "icons/icon-180.png",
   "icons/icon-192.png",
@@ -20,16 +25,23 @@ const FILES = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES)));
-  self.skipWaiting();
+  // cache: "reload" で、ブラウザに残っている古いファイルを使わず、必ずサーバーから新しく取る
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES.map((url) => new Request(url, { cache: "reload" })))));
+  // skipWaiting() はここでは呼ばない。「更新」ボタンのメッセージを受け取ったときだけ切り替える
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  // 名前の違う古い保存領域を片付ける（CACHE を変えたとき用）
+  // 名前の違う古い保存領域を片付ける
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -37,14 +49,15 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) return;
 
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
-        }
+    caches.open(CACHE).then(async (cache) => {
+      const cached =
+        (await cache.match(request, { ignoreSearch: true })) ||
+        (request.mode === "navigate" ? await cache.match("index.html") : undefined);
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response.ok) cache.put(request, response.clone());
         return response;
-      })
-      .catch(() => caches.match(request, { ignoreSearch: true })),
+      });
+    }),
   );
 });

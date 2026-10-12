@@ -1,0 +1,39 @@
+// PWA の整合性: バージョンのそろい・キャッシュ対象の実在・アイコンの実在
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { test } from "node:test";
+import { APP_VERSION } from "./version.js";
+
+const dir = new URL(".", import.meta.url);
+const read = (name) => readFileSync(new URL(name, dir), "utf8");
+
+test("version.js と sw.js のバージョンが同じ", () => {
+  const cache = /const CACHE = "hit-and-blow-v([0-9.]+)"/.exec(read("sw.js"))[1];
+  assert.equal(cache, APP_VERSION, "sw.js の CACHE を version.js の APP_VERSION と同じ番号にしてください");
+});
+
+test("sw.js がキャッシュするファイルは、すべて存在する", () => {
+  const list = /const FILES = \[([\s\S]*?)\];/.exec(read("sw.js"))[1]
+    .match(/"([^"]+)"/g)
+    .map((x) => x.slice(1, -1))
+    .filter((x) => x !== "./");
+  for (const file of list) assert.ok(existsSync(new URL(file, dir)), `見つからない: ${file}`);
+});
+
+test("web/ の画面・スクリプト・スタイルは、すべてキャッシュ対象に入っている", () => {
+  const sw = read("sw.js");
+  for (const file of ["index.html", "style.css", "version.js", "app.js", "logic.js", "effects.js", "pwa.js"]) {
+    assert.ok(sw.includes(`"${file}"`), `sw.js の FILES に ${file} がありません`);
+  }
+});
+
+test("manifest が参照するアイコンは、すべて存在する", () => {
+  const manifest = JSON.parse(read("manifest.webmanifest"));
+  for (const icon of manifest.icons) assert.ok(existsSync(new URL(icon.src, dir)), `見つからない: ${icon.src}`);
+});
+
+test("viewport で拡大を禁止していない", () => {
+  const viewport = /<meta name="viewport" content="([^"]*)"/.exec(read("index.html"))[1];
+  assert.doesNotMatch(viewport, /user-scalable\s*=\s*(no|0)/);
+  assert.doesNotMatch(viewport, /maximum-scale/);
+});

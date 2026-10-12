@@ -62,6 +62,14 @@
         <button id="menu-button" type="button" class="secondary">難易度を選ぶ</button>
       </div>
     </section>
+
+    <p class="app-version">v<span id="app-version"></span></p>
   </main>
+
+  <!-- 新しい版があるときに出る。押すと切り替わって読み込み直す（今のゲームは最初からになる） -->
+  <div id="update-banner" class="update-banner" role="status" hidden>
+    <span>新しいバージョンがあります<small>（更新すると、今のゲームは最初からになります）</small></span>
+    <button id="update-button" type="button" class="primary">更新</button>
+  </div>
 </body>
 </html>
