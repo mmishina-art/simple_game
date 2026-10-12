@@ -2,6 +2,7 @@
 
 import { DIFFICULTIES, MAX_TRIES, countHitsAndBlows, excludedDigits, makeAnswer, updateBest } from "./logic.js";
 import { APP_VERSION } from "./version.js";
+import { setupInstallGuide } from "./install.js";
 import { setupUpdateBanner } from "./pwa.js";
 import { confetti, isSoundOn, playSound, playSoundLater, reducedMotion, setSoundOn, vibrate, wait } from "./effects.js";
 
@@ -351,6 +352,7 @@ function setup() {
   requestPersistentStorage();
   $("app-version").textContent = APP_VERSION;
   setupUpdateBanner($("update-banner"), $("update-button"));
+  setupInstallGuide($("install-open"), $("install-dialog"), $("install-now"));
 }
 
 setup();

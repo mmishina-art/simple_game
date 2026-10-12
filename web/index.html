@@ -33,6 +33,7 @@
       </details>
       <h2>難易度を選んでください</h2>
       <div id="difficulty-buttons" class="difficulty-buttons"></div>
+      <button id="install-open" type="button" class="link install-open">📲 アプリとしてインストールする方法</button>
     </section>
 
     <!-- ゲーム画面 -->
@@ -65,6 +66,39 @@
 
     <p class="app-version">v<span id="app-version"></span></p>
   </main>
+
+  <!-- インストール方法（難易度を選ぶ画面から開く） -->
+  <dialog id="install-dialog" class="install-dialog" aria-labelledby="install-title">
+    <h2 id="install-title">ホーム画面に追加して使う</h2>
+    <p class="muted">インストールすると、ホーム画面から開けて、オフラインでも遊べます。</p>
+    <button id="install-now" type="button" class="primary" hidden>今すぐインストール</button>
+    <details data-platform="ios">
+      <summary>iPhone / iPad</summary>
+      <ol>
+        <li><strong>Safari</strong> でこのページを開く</li>
+        <li>共有ボタン（□から↑が出ているマーク）をタップ</li>
+        <li>「<strong>ホーム画面に追加</strong>」を選ぶ</li>
+        <li>右上の「追加」をタップ</li>
+      </ol>
+    </details>
+    <details data-platform="android">
+      <summary>Android</summary>
+      <ol>
+        <li><strong>Chrome</strong> でこのページを開く</li>
+        <li>右上のメニュー（⋮）をタップ</li>
+        <li>「<strong>アプリをインストール</strong>」または「ホーム画面に追加」を選ぶ</li>
+        <li>「インストール」をタップ</li>
+      </ol>
+    </details>
+    <details data-platform="pc">
+      <summary>パソコン（Chrome / Edge）</summary>
+      <ol>
+        <li>アドレスバーの右端にあるインストールのマークをクリック</li>
+        <li>「<strong>インストール</strong>」を選ぶ</li>
+      </ol>
+    </details>
+    <button type="button" class="secondary" data-close>とじる</button>
+  </dialog>
 
   <!-- 新しい版があるときに出る。押すと切り替わって読み込み直す（今のゲームは最初からになる） -->
   <div id="update-banner" class="update-banner" role="status" hidden>
