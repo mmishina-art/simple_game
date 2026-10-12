@@ -35,6 +35,13 @@
       </details>
       <h2>難易度を選んでください</h2>
       <div id="difficulty-buttons" class="difficulty-buttons"></div>
+      <details class="backup">
+        <summary>記録のバックアップ</summary>
+        <p>最高記録は、このブラウザの中にだけ保存されています。ファイルに残しておくと、消えたときに戻せます。</p>
+        <button id="backup-export" type="button" class="secondary">ファイルに書き出す</button>
+        <label class="file-button">ファイルから読み込む<input id="backup-import" type="file" accept="application/json,.json" hidden></label>
+        <p id="backup-message" role="status"></p>
+      </details>
       <button id="install-open" type="button" class="link install-open">📲 アプリとしてインストールする方法</button>
     </section>
 

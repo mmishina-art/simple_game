@@ -184,6 +184,44 @@ test("最初の画面からインストール方法を開ける（使ってい�
   await expect(dialog).toBeHidden();
 });
 
+test("記録をファイルに書き出し、消えたあとに読み込んで戻せる", async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem("hit-and-blow-best", JSON.stringify({ 4: 6 })));
+  await page.reload();
+  await expect(page.getByRole("button", { name: /^ふつう/ })).toContainText("最高記録 6 回");
+  await page.getByText("記録のバックアップ").click();
+
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "ファイルに書き出す" }).click()]);
+  const { readFileSync } = await import("node:fs");
+  const text = readFileSync(await download.path(), "utf8");
+  expect(JSON.parse(text).data["hit-and-blow-best"]).toBe(JSON.stringify({ 4: 6 }));
+
+  // 記録を消す → 読み込んで戻す（画面にもすぐ反映される）
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(page.getByRole("button", { name: /^ふつう/ })).toContainText("記録なし");
+  await page.getByText("記録のバックアップ").click();
+  await page.locator("#backup-import").setInputFiles({ name: "backup.json", mimeType: "application/json", buffer: Buffer.from(text) });
+  await expect(page.getByRole("button", { name: /^ふつう/ })).toContainText("最高記録 6 回");
+  await expect(page.locator("#backup-message")).toContainText("読み込みました");
+});
+
+test("古いバックアップを読み込んでも、今の良い記録は悪くならない", async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem("hit-and-blow-best", JSON.stringify({ 4: 4 })));
+  await page.reload();
+  await page.getByText("記録のバックアップ").click();
+  const old = JSON.stringify({ app: "hit-and-blow", schemaVersion: 1, data: { "hit-and-blow-best": JSON.stringify({ 4: 9, 5: 7 }) } });
+  await page.locator("#backup-import").setInputFiles({ name: "old.json", mimeType: "application/json", buffer: Buffer.from(old) });
+  await expect(page.getByRole("button", { name: /^ふつう/ })).toContainText("最高記録 4 回"); // 4 のまま（9 には戻らない）
+  await expect(page.getByRole("button", { name: /^むずかしい/ })).toContainText("最高記録 7 回"); // 新しい難易度は取り込む
+});
+
+test("おかしいバックアップファイルは、理由を表示して読み込まない", async ({ page }) => {
+  await page.getByText("記録のバックアップ").click();
+  await page.locator("#backup-import").setInputFiles({ name: "bad.json", mimeType: "application/json", buffer: Buffer.from('{"app":"other"}') });
+  await expect(page.locator("#backup-message")).toContainText("このゲームのバックアップではありません");
+  await expect(page.getByRole("button", { name: /^ふつう/ })).toContainText("記録なし");
+});
+
 // 毎回先にページを開く共通処理で Service Worker が有効になり、読み込みの失敗を作れないので、このテストだけ無効にする
 test.describe("起動失敗の復旧", () => {
   test.use({ serviceWorkers: "block" });
