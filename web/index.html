@@ -11,6 +11,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="ヒット＆ブロー">
   <link rel="stylesheet" href="style.css">
+  <!-- 起動できなかったときの復旧（app.js とは別のふつうのスクリプト。いちばん先に読み込む） -->
+  <script src="boot.js"></script>
   <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -99,6 +101,12 @@
     </details>
     <button type="button" class="secondary" data-close>とじる</button>
   </dialog>
+
+  <!-- 起動できなかったときに出る（boot.js が表示する） -->
+  <div id="boot-error" class="update-banner boot-error" role="alert" hidden>
+    <span>うまく読み込めませんでした<small>（最高記録は消えません）</small></span>
+    <button id="boot-repair" type="button" class="primary">なおす</button>
+  </div>
 
   <!-- 新しい版があるときに出る。押すと切り替わって読み込み直す（今のゲームは最初からになる） -->
   <div id="update-banner" class="update-banner" role="status" hidden>

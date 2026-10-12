@@ -183,3 +183,27 @@ test("最初の画面からインストール方法を開ける（使ってい�
   await dialog.getByRole("button", { name: "とじる" }).click();
   await expect(dialog).toBeHidden();
 });
+
+// 毎回先にページを開く共通処理で Service Worker が有効になり、読み込みの失敗を作れないので、このテストだけ無効にする
+test.describe("起動失敗の復旧", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("起動できないときは「なおす」ボタンが出て、押すと起動できる（最高記録は消えない）", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__bootWaitMs = 500;
+      // 1回目の自動修復は済んだことにして、ボタンが出る側の動きを確かめる
+      sessionStorage.setItem("hit-and-blow:repaired-at", String(Date.now()));
+      localStorage.setItem("hit-and-blow-best", JSON.stringify({ 4: 3 }));
+    });
+    // メインのスクリプトが読み込めない状況を作る
+    await page.route("**/app.js", (route) => route.abort());
+    await page.goto("/");
+    await expect(page.locator("#boot-error")).toBeVisible();
+
+    await page.unroute("**/app.js");
+    await page.getByRole("button", { name: "なおす" }).click();
+    await expect(page.getByRole("heading", { name: "難易度を選んでください" })).toBeVisible();
+    await expect(page.locator("#boot-error")).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem("hit-and-blow-best"))).toBe(JSON.stringify({ 4: 3 }));
+  });
+});

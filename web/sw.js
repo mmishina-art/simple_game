@@ -8,11 +8,12 @@
 // ・web/ にファイルを足したら FILES にも足すこと（実在しないファイルが載っていてもテストが失敗する）。
 // 最高記録は localStorage にあり、ここで扱うファイルの保存とは別なので消えない。
 
-const CACHE = "hit-and-blow-v1.1"; // version.js の APP_VERSION と同じ番号
+const CACHE = "hit-and-blow-v1.2"; // version.js の APP_VERSION と同じ番号
 const FILES = [
   "./",
   "index.html",
   "style.css",
+  "boot.js",
   "version.js",
   "app.js",
   "logic.js",
