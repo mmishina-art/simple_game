@@ -118,7 +118,7 @@ In `eslint.config.js`, `web/` gets browser globals, `web/sw.js` service-worker g
 
 ## 現状と標準のずれ
 
-標準を満たしており、他のアプリの手本になっている(CI は PR で lint / テスト / E2E、main で公開)。
+標準をほぼ満たしており、CI・テスト・更新方式などは他のアプリの手本になっている(CI は PR で lint / テスト / E2E、main で公開)。残る違いは次のとおり。
 
 - 公開用 `pages.yml` は `web/**` の変更時のみ動く。公開前のテストは `test.yml` が PR で行うため、`pages.yml` 側ではテストを再実行していない。
 - `maskable` は通常の `icon-512.png` と同じ画像を使っているが、背景が全面塗りで図柄が中央 50% に収まっているため、切り抜かれても欠けない(問題なし)。
