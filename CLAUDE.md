@@ -124,7 +124,6 @@ In `eslint.config.js`, `web/` gets browser globals, `web/sw.js` service-worker g
 - `maskable` は通常の `icon-512.png` と同じ画像を使っているが、背景が全面塗りで図柄が中央 50% に収まっているため、切り抜かれても欠けない(問題なし)。
 - 起動に失敗したときの復旧(「なおす」ボタン)がない。
 - 保存データ(最高記録 `hit-and-blow-best`)に版番号がなく、書き出し / 読み込みもない。
-- Dependabot の設定がない。
 - README がなく、素材の出どころの記載がない(音は Web Audio で合成しており、素材ファイルは持たない)。
 
-対応済み: キャッシュ優先 + 更新ボタン方式、インストール方法の説明(最初の画面)、バージョン表示(ページの下。`web/version.js`)。
+対応済み: キャッシュ優先 + 更新ボタン方式、インストール方法の説明(最初の画面)、バージョン表示(ページの下。`web/version.js`)、Dependabot(`.github/dependabot.yml`。npm・pipは毎週、Actions は毎月)。
